@@ -1,4 +1,4 @@
-package main
+package inmemory
 
 import (
 	"encoding/json"
@@ -13,6 +13,7 @@ type InMemoryStore struct {
 	mutex sync.RWMutex
 }
 
+// Создание хранилища
 func NewInMemoryStore() *InMemoryStore {
 	return &InMemoryStore{
 		data: make(map[string]string),
@@ -78,6 +79,6 @@ func main() {
 	http.HandleFunc("/get", handleGet(store))
 	http.HandleFunc("/put", handlePut(store))
 
-	log.Printf("Server is running on http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Printf("Server is running on http://localhost:8000")
+	log.Fatal(http.ListenAndServe(":8000", nil))
 }

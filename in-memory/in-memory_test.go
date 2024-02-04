@@ -1,9 +1,10 @@
-package main
+package inmemory
 
 import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 )
@@ -84,9 +85,10 @@ func BenchmarkHTTPGet(b *testing.B) {
 
 	// Выполняем параллельные HTTP GET запросы
 	for i := 0; i < b.N; i++ {
+		n := i
 		go func() {
 			defer wg.Done()
-			url := fmt.Sprintf("%s/get?key=key%d", server.URL, i)
+			url := fmt.Sprintf("%s/get?key=key%d", server.URL, n)
 			http.Get(url)
 		}()
 	}
@@ -107,11 +109,13 @@ func BenchmarkHTTPPut(b *testing.B) {
 
 	// Выполняем параллельные HTTP PUT запросы
 	for i := 0; i < b.N; i++ {
+		n := i
 		go func() {
 			defer wg.Done()
 			url := fmt.Sprintf("%s/put", server.URL)
-			// fmt.Sprintf(`{"key": "key%d", "value": "value%d"}`, i, i) // data
-			http.Post(url, "application/json", nil)
+			data := fmt.Sprintf(`{"key": "key%d", "value": "value%d"}`, n, n)
+			body := strings.NewReader(data)
+			http.Post(url, "application/json", body) //nil
 		}()
 	}
 
