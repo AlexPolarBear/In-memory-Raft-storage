@@ -28,13 +28,6 @@ func (s *InMemoryStore) Get(key string) (string, bool) {
 	return value, ok
 }
 
-// Put добавляет или обновляет значение по ключу
-func (s *InMemoryStore) Put(key, value string) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	s.data[key] = value
-}
-
 // handleGet обрабатывает HTTP GET запросы
 func handleGet(store *InMemoryStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -52,6 +45,13 @@ func handleGet(store *InMemoryStore) http.HandlerFunc {
 
 		fmt.Fprintf(w, "Value for key '%s': %s", key, value)
 	}
+}
+
+// Put добавляет или обновляет значение по ключу
+func (s *InMemoryStore) Put(key, value string) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.data[key] = value
 }
 
 // handlePut обрабатывает HTTP PUT запросы
