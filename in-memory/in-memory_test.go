@@ -39,6 +39,18 @@ func TestInMemoryStore(t *testing.T) {
 			t.Errorf("Expected key 'nonexistent_key' to be not found")
 		}
 	})
+
+	// Тест для операции Delete
+	t.Run("Delete", func(t *testing.T) {
+		store.Put("test_key", "test_value")
+		store.Delete("test_key")
+
+		// Проверяем, что ключ удален
+		_, ok := store.Get("test_key")
+		if ok {
+			t.Errorf("Expected key 'test_key' to be deleted")
+		}
+	})
 }
 
 // Бенчмарк для операции Put
@@ -69,6 +81,26 @@ func BenchmarkGet(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		key := fmt.Sprintf("key%d", i)
 		store.Get(key)
+	}
+}
+
+// Бенчмарк для операции Delete
+func BenchmarkDelete(b *testing.B) {
+	store := NewInMemoryStore()
+
+	// Заполняем хранилище данными
+	for i := 0; i < b.N; i++ {
+		key := fmt.Sprintf("key%d", i)
+		value := fmt.Sprintf("value%d", i)
+		store.Put(key, value)
+	}
+
+	b.ResetTimer()
+
+	// Выполняем операцию Delete
+	for i := 0; i < b.N; i++ {
+		key := fmt.Sprintf("key%d", i)
+		store.Delete(key)
 	}
 }
 
@@ -116,6 +148,38 @@ func BenchmarkHTTPPut(b *testing.B) {
 			data := fmt.Sprintf(`{"key": "key%d", "value": "value%d"}`, n, n)
 			body := strings.NewReader(data)
 			http.Post(url, "application/json", body) //nil
+		}()
+	}
+
+	wg.Wait()
+}
+
+// Бенчмарк для HTTP DELETE запроса
+func BenchmarkHTTPDelete(b *testing.B) {
+	store := NewInMemoryStore()
+	server := httptest.NewServer(http.HandlerFunc(handleDelete(store)))
+	defer server.Close()
+
+	// Заполняем хранилище данными
+	for i := 0; i < b.N; i++ {
+		key := fmt.Sprintf("key%d", i)
+		value := fmt.Sprintf("value%d", i)
+		store.Put(key, value)
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(b.N)
+
+	b.ResetTimer()
+
+	// Выполняем параллельные HTTP DELETE запросы
+	for i := 0; i < b.N; i++ {
+		var k = i
+		go func() {
+			defer wg.Done()
+			url := fmt.Sprintf("%s/delete?key=key%d", server.URL, k)
+			req, _ := http.NewRequest(http.MethodDelete, url, nil)
+			http.DefaultClient.Do(req)
 		}()
 	}
 

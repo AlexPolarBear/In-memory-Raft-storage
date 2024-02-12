@@ -73,11 +73,33 @@ func handlePut(store *InMemoryStore) http.HandlerFunc {
 	}
 }
 
+// Delete удаляет значение из хранилища по ключу
+func (s *InMemoryStore) Delete(key string) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	delete(s.data, key)
+}
+
+// handleDelete обрабатывает HTTP DELETE запросы
+func handleDelete(store *InMemoryStore) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		key := r.URL.Query().Get("key")
+		if key == "" {
+			http.Error(w, "Missing 'key' parameter", http.StatusBadRequest)
+			return
+		}
+
+		store.Delete(key)
+		fmt.Fprintf(w, "Successfully deleted key '%s'", key)
+	}
+}
+
 func main() {
 	store := NewInMemoryStore()
 
 	http.HandleFunc("/get", handleGet(store))
 	http.HandleFunc("/put", handlePut(store))
+	http.HandleFunc("/delete", handleDelete(store))
 
 	log.Printf("Server is running on http://localhost:8000")
 	log.Fatal(http.ListenAndServe(":8000", nil))
