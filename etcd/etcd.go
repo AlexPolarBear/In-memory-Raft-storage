@@ -1,84 +1,96 @@
 package etcd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
-	"sync"
+
+	"go.etcd.io/etcd/clientv3"
 )
 
-// KeyValueStore представляет key-value хранилище
-type KeyValueStore struct {
-	data map[string]string
-	mu   sync.RWMutex
+type KeyValue struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
 }
 
-// NewKeyValueStore создает новое key-value хранилище
-func NewKeyValueStore() *KeyValueStore {
-	return &KeyValueStore{
-		data: make(map[string]string),
+var (
+	etcdEndpoints = []string{"localhost:2379"} // список узлов etcd
+)
+
+func NewEtcd() {
+
+}
+
+func main() {
+	// Создаем клиент etcd
+	client, err := clientv3.New(clientv3.Config{
+		Endpoints: etcdEndpoints,
+	})
+	if err != nil {
+		log.Fatal(err)
 	}
-}
+	defer client.Close()
 
-// Get возвращает значение по ключу из хранилища
-func (kv *KeyValueStore) Get(key string) (string, bool) {
-	kv.mu.RLock()
-	defer kv.mu.RUnlock()
-	value, ok := kv.data[key]
-	return value, ok
-}
-
-// Put добавляет или обновляет значение в хранилище по ключу
-func (kv *KeyValueStore) Put(key, value string) {
-	kv.mu.Lock()
-	defer kv.mu.Unlock()
-	kv.data[key] = value
-}
-
-// handleGet обрабатывает HTTP GET запросы
-func handleGet(kv *KeyValueStore) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/get", func(w http.ResponseWriter, r *http.Request) {
 		key := r.URL.Query().Get("key")
 		if key == "" {
 			http.Error(w, "Missing 'key' parameter", http.StatusBadRequest)
 			return
 		}
 
-		value, ok := kv.Get(key)
-		if !ok {
+		resp, err := client.Get(context.Background(), key)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if len(resp.Kvs) == 0 {
 			http.Error(w, "Key not found", http.StatusNotFound)
 			return
 		}
 
-		fmt.Fprintf(w, "Value for key '%s': %s", key, value)
-	}
-}
-
-// handlePut обрабатывает HTTP PUT запросы
-func handlePut(kv *KeyValueStore) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var requestData struct {
-			Key   string `json:"key"`
-			Value string `json:"value"`
+		kv := KeyValue{
+			Key:   string(resp.Kvs[0].Key),
+			Value: string(resp.Kvs[0].Value),
 		}
 
-		err := json.NewDecoder(r.Body).Decode(&requestData)
-		if err != nil {
-			http.Error(w, "Invalid JSON format", http.StatusBadRequest)
+		json.NewEncoder(w).Encode(kv)
+	})
+
+	http.HandleFunc("/put", func(w http.ResponseWriter, r *http.Request) {
+		var kv KeyValue
+		if err := json.NewDecoder(r.Body).Decode(&kv); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		kv.Put(requestData.Key, requestData.Value)
-		fmt.Fprintf(w, "Successfully stored value for key '%s'", requestData.Key)
-	}
-}
+		_, err := client.Put(context.Background(), kv.Key, kv.Value)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
-func main() {
-	kv := NewKeyValueStore()
+		fmt.Fprintf(w, "Key %s set to %s", kv.Key, kv.Value)
+	})
 
-	http.HandleFunc("/get", handleGet(kv))
-	http.HandleFunc("/put", handlePut(kv))
+	http.HandleFunc("/delete", func(w http.ResponseWriter, r *http.Request) {
+		key := r.URL.Query().Get("key")
+		if key == "" {
+			http.Error(w, "Missing 'key' parameter", http.StatusBadRequest)
+			return
+		}
 
-	fmt.Println("Server is running on :8080")
-	http.ListenAndServe(":8080", nil)
+		_, err := client.Delete(context.Background(), key)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		fmt.Fprintf(w, "Key %s deleted", key)
+	})
+
+	log.Printf("Server is running on http://localhost:8000")
+	log.Fatal(http.ListenAndServe(":8000", nil))
 }

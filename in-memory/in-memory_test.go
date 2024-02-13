@@ -12,40 +12,33 @@ import (
 func TestInMemoryStore(t *testing.T) {
 	store := NewInMemoryStore()
 
-	// Тест для операции Put
 	t.Run("Put", func(t *testing.T) {
 		store.Put("test_key", "test_value")
 
-		// Проверяем, что значение успешно добавлено в хранилище
 		value, ok := store.Get("test_key")
 		if !ok || value != "test_value" {
 			t.Errorf("Expected value 'test_value' for key 'test_key', got '%s'", value)
 		}
 	})
 
-	// Тест для операции Get
 	t.Run("Get", func(t *testing.T) {
 		store.Put("test_key", "test_value")
 
-		// Проверяем, что получаем значение из хранилища
 		value, ok := store.Get("test_key")
 		if !ok || value != "test_value" {
 			t.Errorf("Expected value 'test_value' for key 'test_key', got '%s'", value)
 		}
 
-		// Проверяем случай, когда ключ отсутствует
 		_, ok = store.Get("nonexistent_key")
 		if ok {
 			t.Errorf("Expected key 'nonexistent_key' to be not found")
 		}
 	})
 
-	// Тест для операции Delete
 	t.Run("Delete", func(t *testing.T) {
 		store.Put("test_key", "test_value")
 		store.Delete("test_key")
 
-		// Проверяем, что ключ удален
 		_, ok := store.Get("test_key")
 		if ok {
 			t.Errorf("Expected key 'test_key' to be deleted")
@@ -64,11 +57,9 @@ func BenchmarkPut(b *testing.B) {
 	}
 }
 
-// Бенчмарк для операции Get
 func BenchmarkGet(b *testing.B) {
 	store := NewInMemoryStore()
 
-	// Заполняем хранилище данными
 	for i := 0; i < b.N; i++ {
 		key := fmt.Sprintf("key%d", i)
 		value := fmt.Sprintf("value%d", i)
@@ -77,18 +68,15 @@ func BenchmarkGet(b *testing.B) {
 
 	b.ResetTimer()
 
-	// Выполняем операцию Get
 	for i := 0; i < b.N; i++ {
 		key := fmt.Sprintf("key%d", i)
 		store.Get(key)
 	}
 }
 
-// Бенчмарк для операции Delete
 func BenchmarkDelete(b *testing.B) {
 	store := NewInMemoryStore()
 
-	// Заполняем хранилище данными
 	for i := 0; i < b.N; i++ {
 		key := fmt.Sprintf("key%d", i)
 		value := fmt.Sprintf("value%d", i)
@@ -97,38 +85,12 @@ func BenchmarkDelete(b *testing.B) {
 
 	b.ResetTimer()
 
-	// Выполняем операцию Delete
 	for i := 0; i < b.N; i++ {
 		key := fmt.Sprintf("key%d", i)
 		store.Delete(key)
 	}
 }
 
-// Бенчмарк для HTTP GET запроса
-func BenchmarkHTTPGet(b *testing.B) {
-	store := NewInMemoryStore()
-	server := httptest.NewServer(http.HandlerFunc(handleGet(store)))
-	defer server.Close()
-
-	var wg sync.WaitGroup
-	wg.Add(b.N)
-
-	b.ResetTimer()
-
-	// Выполняем параллельные HTTP GET запросы
-	for i := 0; i < b.N; i++ {
-		n := i
-		go func() {
-			defer wg.Done()
-			url := fmt.Sprintf("%s/get?key=key%d", server.URL, n)
-			http.Get(url)
-		}()
-	}
-
-	wg.Wait()
-}
-
-// Бенчмарк для HTTP PUT запроса
 func BenchmarkHTTPPut(b *testing.B) {
 	store := NewInMemoryStore()
 	server := httptest.NewServer(http.HandlerFunc(handlePut(store)))
@@ -139,7 +101,6 @@ func BenchmarkHTTPPut(b *testing.B) {
 
 	b.ResetTimer()
 
-	// Выполняем параллельные HTTP PUT запросы
 	for i := 0; i < b.N; i++ {
 		n := i
 		go func() {
@@ -154,13 +115,33 @@ func BenchmarkHTTPPut(b *testing.B) {
 	wg.Wait()
 }
 
-// Бенчмарк для HTTP DELETE запроса
+func BenchmarkHTTPGet(b *testing.B) {
+	store := NewInMemoryStore()
+	server := httptest.NewServer(http.HandlerFunc(handleGet(store)))
+	defer server.Close()
+
+	var wg sync.WaitGroup
+	wg.Add(b.N)
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		n := i
+		go func() {
+			defer wg.Done()
+			url := fmt.Sprintf("%s/get?key=key%d", server.URL, n)
+			http.Get(url)
+		}()
+	}
+
+	wg.Wait()
+}
+
 func BenchmarkHTTPDelete(b *testing.B) {
 	store := NewInMemoryStore()
 	server := httptest.NewServer(http.HandlerFunc(handleDelete(store)))
 	defer server.Close()
 
-	// Заполняем хранилище данными
 	for i := 0; i < b.N; i++ {
 		key := fmt.Sprintf("key%d", i)
 		value := fmt.Sprintf("value%d", i)
@@ -172,7 +153,6 @@ func BenchmarkHTTPDelete(b *testing.B) {
 
 	b.ResetTimer()
 
-	// Выполняем параллельные HTTP DELETE запросы
 	for i := 0; i < b.N; i++ {
 		var k = i
 		go func() {

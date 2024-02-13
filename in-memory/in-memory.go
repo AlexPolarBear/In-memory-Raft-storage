@@ -13,14 +13,12 @@ type InMemoryStore struct {
 	mutex sync.RWMutex
 }
 
-// Создание хранилища
 func NewInMemoryStore() *InMemoryStore {
 	return &InMemoryStore{
 		data: make(map[string]string),
 	}
 }
 
-// Get возвращает значение по ключу
 func (s *InMemoryStore) Get(key string) (string, bool) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
@@ -28,7 +26,6 @@ func (s *InMemoryStore) Get(key string) (string, bool) {
 	return value, ok
 }
 
-// handleGet обрабатывает HTTP GET запросы
 func handleGet(store *InMemoryStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		key := r.URL.Query().Get("key")
@@ -47,14 +44,12 @@ func handleGet(store *InMemoryStore) http.HandlerFunc {
 	}
 }
 
-// Put добавляет или обновляет значение по ключу
 func (s *InMemoryStore) Put(key, value string) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	s.data[key] = value
 }
 
-// handlePut обрабатывает HTTP PUT запросы
 func handlePut(store *InMemoryStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var requestData struct {
@@ -73,14 +68,12 @@ func handlePut(store *InMemoryStore) http.HandlerFunc {
 	}
 }
 
-// Delete удаляет значение из хранилища по ключу
 func (s *InMemoryStore) Delete(key string) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	delete(s.data, key)
 }
 
-// handleDelete обрабатывает HTTP DELETE запросы
 func handleDelete(store *InMemoryStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		key := r.URL.Query().Get("key")
