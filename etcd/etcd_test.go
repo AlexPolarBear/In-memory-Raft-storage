@@ -1,4 +1,4 @@
-package etcd
+package main
 
 import (
 	"context"
@@ -106,7 +106,7 @@ func BenchmarkDelete(b *testing.B) {
 	}
 }
 
-func BenchmarkAPIPut(b *testing.B) {
+func BenchmarkHTTPPut(b *testing.B) {
 	payload := fmt.Sprintf(`{"key": "%s", "value": "%s"}`, key, value)
 
 	b.ResetTimer()
@@ -119,7 +119,7 @@ func BenchmarkAPIPut(b *testing.B) {
 	}
 }
 
-func BenchmarkAPIGet(b *testing.B) {
+func BenchmarkHTTPGet(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		resp, err := http.Get(baseURL + "/get?key=" + key)
@@ -140,7 +140,7 @@ func BenchmarkAPIGet(b *testing.B) {
 	}
 }
 
-func BenchmarkAPIDelete(b *testing.B) {
+func BenchmarkHTTPDelete(b *testing.B) {
 	key := fmt.Sprintf("%s_delete_api", key)
 	value := "test_value"
 
