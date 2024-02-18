@@ -1,6 +1,3 @@
 go 1.21.6
 
-use (
-	./etcd
-	./in-memory
-)
+use ./second/in-memory

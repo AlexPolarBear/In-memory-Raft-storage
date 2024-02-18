@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>In-memory Raft storage</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #bbcfe4;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1, h2 {
+            color: #333;
+        }
+
+        form {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="text"] {
+            width: 98%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+
+        button {
+            padding: 8px 20px;
+            background-color: #298efa;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #1a599c;;
+        }
+
+        #getValueResult {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>In-memory Raft storage</h1>
+
+        <h2>Get Value</h2>
+        <form id="getValueForm">
+            <label for="getKey">Key:</label>
+            <input type="text" id="getKey" name="key">
+            <button type="submit">Get Value</button>
+        </form>
+        <div id="getValueResult"></div>
+
+        <h2>Put Value</h2>
+        <form id="putValueForm">
+            <label for="putKey">Key:</label>
+            <input type="text" id="putKey" name="key">
+            <label for="putValue">Value:</label>
+            <input type="text" id="putValue" name="value">
+            <button type="submit">Put Value</button>
+        </form>
+        <div id="putValueResult"></div>
+
+        <h2>Delete Key</h2>
+        <form id="deleteKeyForm">
+            <label for="deleteKey">Key:</label>
+            <input type="text" id="deleteKey" name="key">
+            <button type="submit">Delete Key</button>
+        </form>
+        <div id="deleteValueResult"></div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            document.getElementById("getValueForm").addEventListener("submit", function (event) {
+                event.preventDefault();
+                const key = document.getElementById("getKey").value;
+                fetch(`/get?key=${key}`)
+                    .then(response => response.text())
+                    .then(data => {
+                        document.getElementById("getValueResult").innerText = data;
+                    })
+                    .catch(error => console.error('Error:', error));
+            });
+    
+            document.getElementById("putValueForm").addEventListener("submit", function (event) {
+                event.preventDefault();
+                const key = document.getElementById("putKey").value;
+                const value = document.getElementById("putValue").value;
+                fetch(`/put?key=${key}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ key, value }),
+                })
+                    .then(response => response.text())
+                    .then(data => {
+                        document.getElementById("putValueResult").innerText = data;
+                        console.log('Success:', data);
+                    })
+                    .catch(error => console.error('Error:', error));
+            });
+    
+            document.getElementById("deleteKeyForm").addEventListener("submit", function (event) {
+                event.preventDefault();
+                const key = document.getElementById("deleteKey").value;
+                fetch(`/delete?key=${key}`, { method: 'DELETE' })
+                    .then(response => response.text())
+                    .then(data => {
+                        document.getElementById("deleteValueResult").innerText = data;
+                        console.log('Success:', data);
+                    })
+                    .catch(error => console.error('Error:', error));
+            });
+        });
+    </script>
+</body>
+</html>
