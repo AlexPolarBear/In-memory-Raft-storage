@@ -1,4 +1,4 @@
-package inmemory
+package main
 
 import (
 	"fmt"
@@ -47,18 +47,6 @@ func TestInMemoryStore(t *testing.T) {
 }
 func BenchmarkPut(b *testing.B) {
 	store := NewInMemoryStore()
-
-	// f, err := os.Create("cpu_profile.csv")
-	// if err != nil {
-	// 	b.Fatalf("Failed to create CPU profile: %v", err)
-	// }
-	// defer f.Close()
-
-	// err = pprof.StartCPUProfile(f)
-	// if err != nil {
-	// 	b.Fatalf("Failed to start CPU profile: %v", err)
-	// }
-	// defer pprof.StopCPUProfile()
 
 	for i := 0; i < b.N; i++ {
 		key := fmt.Sprintf("key%d", i)

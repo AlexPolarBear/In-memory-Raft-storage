@@ -1,4 +1,4 @@
-package inmemory
+package main
 
 import (
 	"encoding/json"
@@ -41,6 +41,7 @@ func handleGet(store *InMemoryStore) http.HandlerFunc {
 		}
 
 		fmt.Fprintf(w, "Value for key '%s': %s", key, value)
+		r.Body.Close()
 	}
 }
 
@@ -65,6 +66,7 @@ func handlePut(store *InMemoryStore) http.HandlerFunc {
 
 		store.Put(requestData.Key, requestData.Value)
 		fmt.Fprintf(w, "Successfully stored value for key '%s'", requestData.Key)
+		r.Body.Close()
 	}
 }
 
@@ -84,6 +86,7 @@ func handleDelete(store *InMemoryStore) http.HandlerFunc {
 
 		store.Delete(key)
 		fmt.Fprintf(w, "Successfully deleted key '%s'", key)
+		r.Body.Close()
 	}
 }
 

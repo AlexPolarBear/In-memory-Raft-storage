@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"sync"
@@ -26,6 +25,17 @@ func (s *InMemoryStore) Get(key string) (string, bool) {
 	return value, ok
 }
 
+// func (s *InMemoryStore) Get(key string, result chan<- string) {
+// 	s.mutex.RLock()
+// 	defer s.mutex.RUnlock()
+// 	value, ok := s.data[key]
+// 	if !ok {
+// 		result <- ""
+// 		return
+// 	}
+// 	result <- value
+// }
+
 func handleGet(store *InMemoryStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		key := r.URL.Query().Get("key")
@@ -34,13 +44,29 @@ func handleGet(store *InMemoryStore) http.HandlerFunc {
 			return
 		}
 
+		// result := make(chan string)
+		// go store.Get(key, result)
+		// value := <-result
+
+		// if value == "" {
+		// 	http.Error(w, "Key not found", http.StatusNotFound)
+		// 	return
+		// }
+
 		value, ok := store.Get(key)
 		if !ok {
 			http.Error(w, "Key not found", http.StatusNotFound)
 			return
 		}
 
-		fmt.Fprintf(w, "Value for key '%s': %s", key, value)
+		res := "Value for key '" + key + "': '" + value + "'"
+		_, err := w.Write([]byte(res))
+		if err != nil {
+			http.Error(w, "Failed to write response", http.StatusInternalServerError)
+			return
+		}
+
+		r.Body.Close()
 	}
 }
 
@@ -64,7 +90,15 @@ func handlePut(store *InMemoryStore) http.HandlerFunc {
 		}
 
 		store.Put(requestData.Key, requestData.Value)
-		fmt.Fprintf(w, "Successfully stored value for key '%s'", requestData.Key)
+
+		res := "Successfully stored value for key '" + requestData.Key + "'"
+		_, err = w.Write([]byte(res))
+		if err != nil {
+			http.Error(w, "Failed to write response", http.StatusInternalServerError)
+			return
+		}
+
+		r.Body.Close()
 	}
 }
 
@@ -83,7 +117,15 @@ func handleDelete(store *InMemoryStore) http.HandlerFunc {
 		}
 
 		store.Delete(key)
-		fmt.Fprintf(w, "Successfully deleted key '%s'", key)
+
+		res := "Successfully deleted key '" + key + "'"
+		_, err := w.Write([]byte(res))
+		if err != nil {
+			http.Error(w, "Failed to write response", http.StatusInternalServerError)
+			return
+		}
+
+		r.Body.Close()
 	}
 }
 
