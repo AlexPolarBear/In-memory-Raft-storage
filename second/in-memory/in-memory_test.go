@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestInMemoryStore(t *testing.T) {
@@ -15,8 +16,12 @@ func TestInMemoryStore(t *testing.T) {
 	t.Run("Put", func(t *testing.T) {
 		store.Put("test_key", "test_value")
 
-		value, ok := store.Get("test_key")
-		if !ok || value != "test_value" {
+		time.Sleep(100 * time.Millisecond) // Ждем завершения асинхронной операции
+
+		result := make(chan string)
+		go store.Get("test_key", result)
+		value := <-result
+		if value != "test_value" {
 			t.Errorf("Expected value 'test_value' for key 'test_key', got '%s'", value)
 		}
 	})
@@ -24,27 +29,52 @@ func TestInMemoryStore(t *testing.T) {
 	t.Run("Get", func(t *testing.T) {
 		store.Put("test_key", "test_value")
 
-		value, ok := store.Get("test_key")
-		if !ok || value != "test_value" {
+		time.Sleep(100 * time.Millisecond) // Ждем завершения асинхронной операции
+
+		result := make(chan string)
+		go store.Get("test_key", result)
+		value := <-result
+
+		if value != "test_value" {
 			t.Errorf("Expected value 'test_value' for key 'test_key', got '%s'", value)
 		}
 
-		_, ok = store.Get("nonexistent_key")
-		if ok {
+		time.Sleep(100 * time.Millisecond) // Ждем завершения асинхронной операции
+
+		result = make(chan string)
+		go store.Get("nonexistent_key", result)
+		value = <-result
+
+		if value != "" {
 			t.Errorf("Expected key 'nonexistent_key' to be not found")
 		}
 	})
 
 	t.Run("Delete", func(t *testing.T) {
 		store.Put("test_key", "test_value")
-		store.Delete("test_key")
 
-		_, ok := store.Get("test_key")
-		if ok {
+		var wg sync.WaitGroup
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+			store.Delete("test_key")
+		}()
+
+		wg.Wait() // Ждем завершения операции Delete
+
+		time.Sleep(100 * time.Millisecond) // Даем немного времени на завершение асинхронной операции
+
+		result := make(chan string)
+		go store.Get("test_key", result)
+		value := <-result
+
+		if value != "" {
 			t.Errorf("Expected key 'test_key' to be deleted")
 		}
 	})
 }
+
 func BenchmarkPut(b *testing.B) {
 	store := NewInMemoryStore()
 
@@ -80,7 +110,9 @@ func BenchmarkGet(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		key := fmt.Sprintf("key%d", i)
-		store.Get(key)
+		result := make(chan string)
+		go store.Get(key, result)
+		<-result
 	}
 }
 
@@ -106,23 +138,15 @@ func BenchmarkHTTPPut(b *testing.B) {
 	server := httptest.NewServer(http.HandlerFunc(handlePut(store)))
 	defer server.Close()
 
-	var wg sync.WaitGroup
-	wg.Add(b.N)
-
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
 		n := i
-		go func() {
-			defer wg.Done()
-			url := fmt.Sprintf("%s/put", server.URL)
-			data := fmt.Sprintf(`{"key": "key%d", "value": "value%d"}`, n, n)
-			body := strings.NewReader(data)
-			http.Post(url, "application/json", body) //nil
-		}()
+		url := fmt.Sprintf("%s/put", server.URL)
+		data := fmt.Sprintf(`{"key": "key%d", "value": "value%d"}`, n, n)
+		body := strings.NewReader(data)
+		http.Post(url, "application/json", body)
 	}
-
-	wg.Wait()
 }
 
 func BenchmarkHTTPGet(b *testing.B) {
@@ -130,21 +154,13 @@ func BenchmarkHTTPGet(b *testing.B) {
 	server := httptest.NewServer(http.HandlerFunc(handleGet(store)))
 	defer server.Close()
 
-	var wg sync.WaitGroup
-	wg.Add(b.N)
-
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
 		n := i
-		go func() {
-			defer wg.Done()
-			url := fmt.Sprintf("%s/get?key=key%d", server.URL, n)
-			http.Get(url)
-		}()
+		url := fmt.Sprintf("%s/get?key=key%d", server.URL, n)
+		http.Get(url)
 	}
-
-	wg.Wait()
 }
 
 func BenchmarkHTTPDelete(b *testing.B) {
@@ -158,13 +174,13 @@ func BenchmarkHTTPDelete(b *testing.B) {
 		store.Put(key, value)
 	}
 
+	b.ResetTimer()
+
 	var wg sync.WaitGroup
 	wg.Add(b.N)
 
-	b.ResetTimer()
-
 	for i := 0; i < b.N; i++ {
-		var k = i
+		k := i
 		go func() {
 			defer wg.Done()
 			url := fmt.Sprintf("%s/delete?key=key%d", server.URL, k)

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 	"sync"
 )
 
@@ -18,11 +19,17 @@ func NewInMemoryStore() *InMemoryStore {
 	}
 }
 
-func (s *InMemoryStore) Get(key string) (string, bool) {
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
-	value, ok := s.data[key]
-	return value, ok
+func (s *InMemoryStore) Get(key string, result chan<- string) {
+	go func() {
+		s.mutex.RLock()
+		defer s.mutex.RUnlock()
+		value, ok := s.data[key]
+		if !ok {
+			result <- ""
+			return
+		}
+		result <- value
+	}()
 }
 
 // func (s *InMemoryStore) Get(key string, result chan<- string) {
@@ -44,17 +51,11 @@ func handleGet(store *InMemoryStore) http.HandlerFunc {
 			return
 		}
 
-		// result := make(chan string)
-		// go store.Get(key, result)
-		// value := <-result
+		result := make(chan string)
+		store.Get(key, result)
+		value := <-result
 
-		// if value == "" {
-		// 	http.Error(w, "Key not found", http.StatusNotFound)
-		// 	return
-		// }
-
-		value, ok := store.Get(key)
-		if !ok {
+		if value == "" {
 			http.Error(w, "Key not found", http.StatusNotFound)
 			return
 		}
@@ -71,9 +72,11 @@ func handleGet(store *InMemoryStore) http.HandlerFunc {
 }
 
 func (s *InMemoryStore) Put(key, value string) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	s.data[key] = value
+	go func() {
+		s.mutex.Lock()
+		defer s.mutex.Unlock()
+		s.data[key] = value
+	}()
 }
 
 func handlePut(store *InMemoryStore) http.HandlerFunc {
@@ -90,6 +93,11 @@ func handlePut(store *InMemoryStore) http.HandlerFunc {
 		}
 
 		store.Put(requestData.Key, requestData.Value)
+		err = store.PersistDataToFile("data.json")
+		if err != nil {
+			http.Error(w, "Failed to persist data", http.StatusInternalServerError)
+			return
+		}
 
 		res := "Successfully stored value for key '" + requestData.Key + "'"
 		_, err = w.Write([]byte(res))
@@ -103,9 +111,11 @@ func handlePut(store *InMemoryStore) http.HandlerFunc {
 }
 
 func (s *InMemoryStore) Delete(key string) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	delete(s.data, key)
+	go func() {
+		s.mutex.Lock()
+		defer s.mutex.Unlock()
+		delete(s.data, key)
+	}()
 }
 
 func handleDelete(store *InMemoryStore) http.HandlerFunc {
@@ -117,9 +127,14 @@ func handleDelete(store *InMemoryStore) http.HandlerFunc {
 		}
 
 		store.Delete(key)
+		err := store.PersistDataToFile("data.json")
+		if err != nil {
+			http.Error(w, "Failed to persist data", http.StatusInternalServerError)
+			return
+		}
 
 		res := "Successfully deleted key '" + key + "'"
-		_, err := w.Write([]byte(res))
+		_, err = w.Write([]byte(res))
 		if err != nil {
 			http.Error(w, "Failed to write response", http.StatusInternalServerError)
 			return
@@ -129,8 +144,47 @@ func handleDelete(store *InMemoryStore) http.HandlerFunc {
 	}
 }
 
+func (s *InMemoryStore) PersistDataToFile(filename string) error {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+	if err := encoder.Encode(s.data); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func loadDataFromFile(store *InMemoryStore, filename string) error {
+	file, err := os.Open(filename)
+	if err != nil {
+		file, _ = os.Create(filename)
+	}
+	defer file.Close()
+
+	decoder := json.NewDecoder(file)
+	_ = decoder.Decode(&store.data)
+	// if err := decoder.Decode(&store.data); err != nil {
+	// 	return err
+	// }
+
+	return nil
+}
+
 func main() {
 	store := NewInMemoryStore()
+
+	err := loadDataFromFile(store, "data.json")
+	if err != nil {
+		log.Fatalf("Failed to load data from file: %v", err)
+	}
 
 	http.HandleFunc("/get", handleGet(store))
 	http.HandleFunc("/put", handlePut(store))
