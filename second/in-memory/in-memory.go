@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -165,21 +166,30 @@ func (s *InMemoryStore) PersistDataToFile(filename string) error {
 func loadDataFromFile(store *InMemoryStore, filename string) error {
 	file, err := os.Open(filename)
 	if err != nil {
-		file, _ = os.Create(filename)
+		return err
 	}
 	defer file.Close()
 
 	decoder := json.NewDecoder(file)
-	_ = decoder.Decode(&store.data)
-	// if err := decoder.Decode(&store.data); err != nil {
-	// 	return err
-	// }
+	err = decoder.Decode(&store.data)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
 func main() {
 	store := NewInMemoryStore()
+
+	filename := "data.json"
+
+	if _, err := os.Stat(""); errors.Is(err, os.ErrNotExist) {
+		_, err := os.Create(filename)
+		if err != nil {
+			log.Fatalf("Failed to create json file: %v", err)
+		}
+	}
 
 	err := loadDataFromFile(store, "data.json")
 	if err != nil {

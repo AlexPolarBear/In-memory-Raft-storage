@@ -16,7 +16,7 @@ func TestInMemoryStore(t *testing.T) {
 	t.Run("Put", func(t *testing.T) {
 		store.Put("test_key", "test_value")
 
-		time.Sleep(100 * time.Millisecond) // Ждем завершения асинхронной операции
+		time.Sleep(100 * time.Millisecond)
 
 		result := make(chan string)
 		go store.Get("test_key", result)
@@ -29,7 +29,7 @@ func TestInMemoryStore(t *testing.T) {
 	t.Run("Get", func(t *testing.T) {
 		store.Put("test_key", "test_value")
 
-		time.Sleep(100 * time.Millisecond) // Ждем завершения асинхронной операции
+		time.Sleep(100 * time.Millisecond)
 
 		result := make(chan string)
 		go store.Get("test_key", result)
@@ -39,7 +39,7 @@ func TestInMemoryStore(t *testing.T) {
 			t.Errorf("Expected value 'test_value' for key 'test_key', got '%s'", value)
 		}
 
-		time.Sleep(100 * time.Millisecond) // Ждем завершения асинхронной операции
+		time.Sleep(100 * time.Millisecond)
 
 		result = make(chan string)
 		go store.Get("nonexistent_key", result)
@@ -63,8 +63,7 @@ func TestInMemoryStore(t *testing.T) {
 
 		wg.Wait() // Ждем завершения операции Delete
 
-		time.Sleep(100 * time.Millisecond) // Даем немного времени на завершение асинхронной операции
-
+		time.Sleep(100 * time.Millisecond)
 		result := make(chan string)
 		go store.Get("test_key", result)
 		value := <-result
