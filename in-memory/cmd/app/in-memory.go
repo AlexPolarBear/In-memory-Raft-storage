@@ -44,7 +44,7 @@ func (s *InMemoryStore) Get(key string, result chan<- string) {
 // 	result <- value
 // }
 
-func handleGet(store *InMemoryStore) http.HandlerFunc {
+func HandleGet(store *InMemoryStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		key := r.URL.Query().Get("key")
 		if key == "" {
@@ -80,7 +80,7 @@ func (s *InMemoryStore) Put(key, value string) {
 	}()
 }
 
-func handlePut(store *InMemoryStore) http.HandlerFunc {
+func HandlePut(store *InMemoryStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var requestData struct {
 			Key   string `json:"key"`
@@ -119,7 +119,7 @@ func (s *InMemoryStore) Delete(key string) {
 	}()
 }
 
-func handleDelete(store *InMemoryStore) http.HandlerFunc {
+func HandleDelete(store *InMemoryStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		key := r.URL.Query().Get("key")
 		if key == "" {
@@ -171,10 +171,11 @@ func loadDataFromFile(store *InMemoryStore, filename string) error {
 	defer file.Close()
 
 	decoder := json.NewDecoder(file)
-	err = decoder.Decode(&store.data)
-	if err != nil {
-		return err
-	}
+	_ = decoder.Decode(&store.data)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// 	return err
+	// }
 
 	return nil
 }
@@ -196,11 +197,11 @@ func main() {
 		log.Fatalf("Failed to load data from file: %v", err)
 	}
 
-	http.HandleFunc("/get", handleGet(store))
-	http.HandleFunc("/put", handlePut(store))
-	http.HandleFunc("/delete", handleDelete(store))
+	http.HandleFunc("/get", HandleGet(store))
+	http.HandleFunc("/put", HandlePut(store))
+	http.HandleFunc("/delete", HandleDelete(store))
 
-	http.Handle("/", http.FileServer(http.Dir(".")))
+	http.Handle("/", http.FileServer(http.Dir("../../configs")))
 
 	log.Printf("Server is running on http://localhost:8000")
 	log.Fatal(http.ListenAndServe(":8000", nil))
