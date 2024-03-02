@@ -15,16 +15,9 @@ type KeyValue struct {
 	Value string `json:"value"`
 }
 
-var (
-	etcdEndpoints = []string{"localhost:2379"} // список узлов etcd
-)
-
-func NewEtcd() {
-
-}
+var etcdEndpoints = []string{"localhost:2379"}
 
 func main() {
-	// Создаем клиент etcd
 	client, err := clientv3.New(clientv3.Config{
 		Endpoints: etcdEndpoints,
 	})

@@ -160,35 +160,3 @@ func BenchmarkHTTPDelete(b *testing.B) {
 		resp.Body.Close()
 	}
 }
-
-// func main() {
-// 	fmt.Println("Running benchmarks...")
-// 	client, err := clientv3.New(clientv3.Config{
-// 		Endpoints: []string{"localhost:2379"},
-// 	})
-// 	if err != nil {
-// 		fmt.Println(err)
-// 		return
-// 	}
-// 	defer client.Close()
-
-// 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-// 	defer cancel()
-
-// 	if _, err := client.Delete(ctx, key); err != nil {
-// 		fmt.Println("Error deleting key from etcd:", err)
-// 	}
-
-// 	testing.Benchmark(BenchmarkDelete)
-// 	testing.Benchmark(BenchmarkPut)
-// 	testing.Benchmark(BenchmarkGet)
-
-// 	testing.Benchmark(BenchmarkAPIPut)
-// 	testing.Benchmark(BenchmarkAPIGet)
-// 	testing.Benchmark(BenchmarkAPIDelete)
-// }
-
-// type KeyValue struct {
-// 	Key   string `json:"key"`
-// 	Value string `json:"value"`
-// }
