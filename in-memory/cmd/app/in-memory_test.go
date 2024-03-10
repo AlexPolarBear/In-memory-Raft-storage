@@ -8,10 +8,12 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"inmemory/internal/services"
 )
 
 func TestInMemoryStore(t *testing.T) {
-	store := NewInMemoryStore()
+	store := services.NewInMemoryStore()
 
 	t.Run("Put", func(t *testing.T) {
 		store.Put("test_key", "test_value")
@@ -75,7 +77,7 @@ func TestInMemoryStore(t *testing.T) {
 }
 
 func BenchmarkPut(b *testing.B) {
-	store := NewInMemoryStore()
+	store := services.NewInMemoryStore()
 
 	// f, err := os.Create("cpu_profile.csv")
 	// if err != nil {
@@ -97,7 +99,7 @@ func BenchmarkPut(b *testing.B) {
 }
 
 func BenchmarkGet(b *testing.B) {
-	store := NewInMemoryStore()
+	store := services.NewInMemoryStore()
 
 	for i := 0; i < b.N; i++ {
 		key := fmt.Sprintf("key%d", i)
@@ -116,7 +118,7 @@ func BenchmarkGet(b *testing.B) {
 }
 
 func BenchmarkDelete(b *testing.B) {
-	store := NewInMemoryStore()
+	store := services.NewInMemoryStore()
 
 	for i := 0; i < b.N; i++ {
 		key := fmt.Sprintf("key%d", i)
@@ -133,8 +135,8 @@ func BenchmarkDelete(b *testing.B) {
 }
 
 func BenchmarkHTTPPut(b *testing.B) {
-	store := NewInMemoryStore()
-	server := httptest.NewServer(http.HandlerFunc(HandlePut(store)))
+	store := services.NewInMemoryStore()
+	server := httptest.NewServer(http.HandlerFunc(services.HandlePut(store)))
 	defer server.Close()
 
 	b.ResetTimer()
@@ -149,8 +151,8 @@ func BenchmarkHTTPPut(b *testing.B) {
 }
 
 func BenchmarkHTTPGet(b *testing.B) {
-	store := NewInMemoryStore()
-	server := httptest.NewServer(http.HandlerFunc(HandleGet(store)))
+	store := services.NewInMemoryStore()
+	server := httptest.NewServer(http.HandlerFunc(services.HandleGet(store)))
 	defer server.Close()
 
 	b.ResetTimer()
@@ -163,8 +165,8 @@ func BenchmarkHTTPGet(b *testing.B) {
 }
 
 func BenchmarkHTTPDelete(b *testing.B) {
-	store := NewInMemoryStore()
-	server := httptest.NewServer(http.HandlerFunc(HandleDelete(store)))
+	store := services.NewInMemoryStore()
+	server := httptest.NewServer(http.HandlerFunc(services.HandleDelete(store)))
 	defer server.Close()
 
 	for i := 0; i < b.N; i++ {
