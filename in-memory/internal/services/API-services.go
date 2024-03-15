@@ -2,10 +2,15 @@ package services
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"os"
 	"sync"
 )
+
+type PathsConfig struct {
+	DataFile string `json:"data_file"`
+}
 
 type InMemoryStore struct {
 	Data  map[string]string
@@ -31,7 +36,7 @@ func (s *InMemoryStore) Get(key string, result chan<- string) {
 	}()
 }
 
-func HandleGet(store *InMemoryStore) http.HandlerFunc {
+func HandleGet(s *InMemoryStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		key := r.URL.Query().Get("key")
 		if key == "" {
@@ -40,7 +45,7 @@ func HandleGet(store *InMemoryStore) http.HandlerFunc {
 		}
 
 		result := make(chan string)
-		store.Get(key, result)
+		s.Get(key, result)
 		value := <-result
 
 		if value == "" {
@@ -67,7 +72,7 @@ func (s *InMemoryStore) Put(key, value string) {
 	}()
 }
 
-func HandlePut(store *InMemoryStore) http.HandlerFunc {
+func HandlePut(s *InMemoryStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var requestData struct {
 			Key   string `json:"key"`
@@ -80,8 +85,8 @@ func HandlePut(store *InMemoryStore) http.HandlerFunc {
 			return
 		}
 
-		store.Put(requestData.Key, requestData.Value)
-		err = store.PersistDataToFile("data.json")
+		s.Put(requestData.Key, requestData.Value)
+		err = s.PersistDataToFile()
 		if err != nil {
 			http.Error(w, "Failed to persist data", http.StatusInternalServerError)
 			return
@@ -106,7 +111,7 @@ func (s *InMemoryStore) Delete(key string) {
 	}()
 }
 
-func HandleDelete(store *InMemoryStore) http.HandlerFunc {
+func HandleDelete(s *InMemoryStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		key := r.URL.Query().Get("key")
 		if key == "" {
@@ -114,8 +119,8 @@ func HandleDelete(store *InMemoryStore) http.HandlerFunc {
 			return
 		}
 
-		store.Delete(key)
-		err := store.PersistDataToFile("data.json")
+		s.Delete(key)
+		err := s.PersistDataToFile()
 		if err != nil {
 			http.Error(w, "Failed to persist data", http.StatusInternalServerError)
 			return
@@ -132,18 +137,32 @@ func HandleDelete(store *InMemoryStore) http.HandlerFunc {
 	}
 }
 
-func (s *InMemoryStore) PersistDataToFile(filename string) error {
+func (s *InMemoryStore) PersistDataToFile() error {
 	s.Mutex.RLock()
 	defer s.Mutex.RUnlock()
 
-	file, err := os.Create(filename)
+	file, err := os.Open("in-memory/configs/config.json")
 	if err != nil {
-		return err
+		log.Fatal(err)
 	}
 	defer file.Close()
 
-	encoder := json.NewEncoder(file)
-	if err := encoder.Encode(s.Data); err != nil {
+	decoder := json.NewDecoder(file)
+	config := PathsConfig{}
+	err = decoder.Decode(&config)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	data, err := json.Marshal(s.Data)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	err = os.WriteFile(config.DataFile, data, 0644)
+	if err != nil {
+		log.Fatal(err)
 		return err
 	}
 

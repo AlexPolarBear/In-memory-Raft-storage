@@ -10,19 +10,22 @@ import (
 	"inmemory/internal/services"
 )
 
-func loadDataFromFile(store *services.InMemoryStore, filename string) error {
-	file, err := os.Open(filename)
+type PathsConfig struct {
+	DataFile  string `json:"data_file"`
+	IndexFile string `json:"index_file"`
+}
+
+func loadDataFromFile(s *services.InMemoryStore, filename string) error {
+	data, err := os.ReadFile(filename)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
 
-	decoder := json.NewDecoder(file)
-	_ = decoder.Decode(&store.Data)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// 	return err
-	// }
+	err = json.Unmarshal(data, &s.Data)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
 
 	return nil
 }
@@ -30,16 +33,27 @@ func loadDataFromFile(store *services.InMemoryStore, filename string) error {
 func main() {
 	store := services.NewInMemoryStore()
 
-	filename := "data.json"
+	file, err := os.Open("in-memory/configs/config.json")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
 
-	if _, err := os.Stat(""); errors.Is(err, os.ErrNotExist) {
-		_, err := os.Create(filename)
+	decoder := json.NewDecoder(file)
+	config := PathsConfig{}
+	err = decoder.Decode(&config)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if _, err := os.Stat(config.DataFile); errors.Is(err, os.ErrNotExist) {
+		_, err := os.Create(config.DataFile)
 		if err != nil {
 			log.Fatalf("Failed to create json file: %v", err)
 		}
 	}
 
-	err := loadDataFromFile(store, "data.json")
+	err = loadDataFromFile(store, config.DataFile)
 	if err != nil {
 		log.Fatalf("Failed to load data from file: %v", err)
 	}
@@ -48,7 +62,7 @@ func main() {
 	http.HandleFunc("/put", services.HandlePut(store))
 	http.HandleFunc("/delete", services.HandleDelete(store))
 
-	http.Handle("/", http.FileServer(http.Dir("../../configs")))
+	http.Handle("/", http.FileServer(http.Dir(config.IndexFile)))
 
 	log.Printf("Server is running on http://localhost:8000")
 	log.Fatal(http.ListenAndServe(":8000", nil))
