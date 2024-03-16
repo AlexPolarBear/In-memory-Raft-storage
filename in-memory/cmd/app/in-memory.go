@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"inmemory/internal/services"
 )
@@ -13,6 +14,7 @@ import (
 type PathsConfig struct {
 	DataFile  string `json:"data_file"`
 	IndexFile string `json:"index_file"`
+	// LogFile   string `json:"log_file`
 }
 
 func loadDataFromFile(s *services.InMemoryStore, filename string) error {
@@ -53,10 +55,25 @@ func main() {
 		}
 	}
 
+	// if _, err := os.Stat(config.LogFile); errors.Is(err, os.ErrNotExist) {
+	// 	_, err := os.Create(config.LogFile)
+	// 	if err != nil {
+	// 		log.Fatalf("Failed to create log file: %v", err)
+	// 	}
+	// } else {
+	// 	err = loadLogFromFile(store, config.LogFile)
+	// 	if err != nil {
+	// 		log.Fatalf("Failed to load log from file: %v", err)
+	// 	}
+	// }
+
 	err = loadDataFromFile(store, config.DataFile)
 	if err != nil {
 		log.Fatalf("Failed to load data from file: %v", err)
 	}
+
+	interval := 24 * time.Hour
+	go services.PeriodicSave(store, interval)
 
 	http.HandleFunc("/get", services.HandleGet(store))
 	http.HandleFunc("/put", services.HandlePut(store))

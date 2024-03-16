@@ -6,20 +6,28 @@ import (
 	"net/http"
 	"os"
 	"sync"
+	"time"
 )
 
 type PathsConfig struct {
 	DataFile string `json:"data_file"`
 }
 
+type OperationLog struct {
+	Operations []string
+}
+
 type InMemoryStore struct {
-	Data  map[string]string
-	Mutex sync.RWMutex
+	Data         map[string]string
+	Mutex        sync.RWMutex
+	LogFile      *os.File
+	OperationLog *OperationLog
 }
 
 func NewInMemoryStore() *InMemoryStore {
 	return &InMemoryStore{
-		Data: make(map[string]string),
+		Data:         make(map[string]string),
+		OperationLog: &OperationLog{Operations: []string{}},
 	}
 }
 
@@ -154,7 +162,7 @@ func (s *InMemoryStore) PersistDataToFile() error {
 		log.Fatal(err)
 	}
 
-	data, err := json.Marshal(s.Data)
+	data, err := json.MarshalIndent(s.Data, "", "    ")
 	if err != nil {
 		log.Fatal(err)
 		return err
@@ -166,5 +174,44 @@ func (s *InMemoryStore) PersistDataToFile() error {
 		return err
 	}
 
+	// err = s.PersistLogToFile()
+	// if err != nil {
+	// 	return err
+	// }
+
 	return nil
 }
+
+func PeriodicSave(s *InMemoryStore, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		err := s.PersistDataToFile()
+		if err != nil {
+			log.Fatal("Error saving data to file:", err)
+		}
+	}
+}
+
+// func (s *InMemoryStore) PersistLogToFile() error {
+// 	logFile, err := os.Open("in-memory/internal/data/log.log")
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+// 	defer logFile.Close()
+
+// 	logData, err := json.MarshalIndent(s.OperationLog, "", "    ")
+// 	if err != nil {
+// 		log.Fatal(err)
+// 		return err
+// 	}
+
+// 	_, err = logFile.Write(logData)
+// 	if err != nil {
+// 		log.Fatal(err)
+// 		return err
+// 	}
+
+// 	return nil
+// }
