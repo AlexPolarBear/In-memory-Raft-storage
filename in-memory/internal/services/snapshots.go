@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 )
@@ -19,11 +20,11 @@ func Snapshot(s *InMemoryStore, interval time.Duration) {
 	snapshotsMutex := sync.Mutex{}
 
 	for range ticker.C {
-		SnapshotCreat(s, &snapshotsMutex, snapshots)
+		SnapshotCreat(s, &snapshotsMutex, &snapshots)
 	}
 }
 
-func SnapshotCreat(s *InMemoryStore, snapshotsMutex *sync.Mutex, snapshots []map[string]string) {
+func SnapshotCreat(s *InMemoryStore, snapshotsMutex *sync.Mutex, snapshots *[]map[string]string) {
 	s.Mutex.RLock()
 	defer s.Mutex.RUnlock()
 	defer snapshotsMutex.Unlock()
@@ -34,10 +35,11 @@ func SnapshotCreat(s *InMemoryStore, snapshotsMutex *sync.Mutex, snapshots []map
 	}
 
 	snapshotsMutex.Lock()
-	snapshots = append(snapshots, snapshot)
-	if len(snapshot) > 10 {
-		snapshots = snapshots[1:]
+	*snapshots = append(*snapshots, snapshot)
+	if len(*snapshots) > 10 {
+		*snapshots = (*snapshots)[1:]
 	}
+	// snapshotsMutex.Unlock()
 
 	go func() {
 		s.SnapCh <- snapshot
@@ -46,18 +48,19 @@ func SnapshotCreat(s *InMemoryStore, snapshotsMutex *sync.Mutex, snapshots []map
 	timestamp := time.Now().Format("2006-01-02_15-04-05")
 	filename := fmt.Sprintf("snapshot-%s.json", timestamp)
 	SaveSnapshotToFile(s, filepath.Join("in-memory/internal/data/snapshots", filename), snapshot)
+	DeleteOldSnapshots(filepath.Join("in-memory/internal/data/snapshots"), 10)
 }
 
 func SaveSnapshotToFile(s *InMemoryStore, filename string, snapshot map[string]string) {
-	// snapshot := <-s.SnapCh
 	file, err := os.Create(filename)
 	if err != nil {
-		log.Println("Error to creat file:", err)
+		log.Println("Error to create file:", err)
 		return
 	}
 	defer file.Close()
 
 	enc := json.NewEncoder(file)
+	enc.SetIndent("", "  ")
 	if err := enc.Encode(snapshot); err != nil {
 		log.Println("Error to write in file:", err)
 		return
@@ -105,4 +108,41 @@ func LoadSnapshotFromFile(filename string) (map[string]string, error) {
 		return nil, err
 	}
 	return snapshot, nil
+}
+
+func DeleteOldSnapshots(dir string, maxSnapshots int) {
+	files, err := os.ReadDir(dir)
+	if err != nil {
+		log.Println("Error reading directory:", err)
+		return
+	}
+
+	sort.Slice(files, func(i, j int) bool {
+		iTime, err := getTimeFromFilename(files[i].Name())
+		if err != nil {
+			return false
+		}
+		jTime, err := getTimeFromFilename(files[j].Name())
+		if err != nil {
+			return false
+		}
+		return iTime.Before(jTime)
+	})
+
+	for i := 0; i < len(files)-maxSnapshots; i++ {
+		err := os.Remove(filepath.Join(dir, files[i].Name()))
+		if err != nil {
+			log.Println("Error deleting file:", err)
+		}
+	}
+}
+
+func getTimeFromFilename(filename string) (time.Time, error) {
+	timestamp := strings.TrimSuffix(filename, ".json")
+	timestamp = strings.ReplaceAll(timestamp, "snapshot-", "")
+	t, err := time.Parse("2006-01-02_15-04-05", timestamp)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return t, nil
 }
