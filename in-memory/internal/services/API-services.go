@@ -13,21 +13,23 @@ type PathsConfig struct {
 	DataFile string `json:"data_file"`
 }
 
-type OperationLog struct {
-	Operations []string
-}
+// type OperationLog struct {
+// 	Operations []string
+// }
 
 type InMemoryStore struct {
-	Data         map[string]string
-	Mutex        sync.RWMutex
-	LogFile      *os.File
-	OperationLog *OperationLog
+	Data   map[string]string
+	Mutex  sync.RWMutex
+	SnapCh chan map[string]string
+	// LogFile *os.File
+	// OperationLog *OperationLog
 }
 
 func NewInMemoryStore() *InMemoryStore {
 	return &InMemoryStore{
-		Data:         make(map[string]string),
-		OperationLog: &OperationLog{Operations: []string{}},
+		Data:   make(map[string]string),
+		SnapCh: make(chan map[string]string),
+		// OperationLog: &OperationLog{Operations: []string{}},
 	}
 }
 

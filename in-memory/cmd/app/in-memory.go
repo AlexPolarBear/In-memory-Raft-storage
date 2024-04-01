@@ -72,8 +72,9 @@ func main() {
 		log.Fatalf("Failed to load data from file: %v", err)
 	}
 
-	interval := 24 * time.Hour
+	interval := 30 * time.Minute
 	go services.PeriodicSave(store, interval)
+	go services.Snapshot(store, interval)
 
 	http.HandleFunc("/get", services.HandleGet(store))
 	http.HandleFunc("/put", services.HandlePut(store))
