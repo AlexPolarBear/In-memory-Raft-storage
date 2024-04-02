@@ -73,7 +73,6 @@ func main() {
 	}
 
 	interval := 30 * time.Minute
-	interval = 20 * time.Second
 	go services.PeriodicSave(store, interval)
 	go services.Snapshot(store, interval)
 

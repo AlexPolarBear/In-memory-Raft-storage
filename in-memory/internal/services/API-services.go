@@ -2,6 +2,7 @@ package services
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -13,23 +14,23 @@ type PathsConfig struct {
 	DataFile string `json:"data_file"`
 }
 
-// type OperationLog struct {
-// 	Operations []string
-// }
-
 type InMemoryStore struct {
-	Data   map[string]string
-	Mutex  sync.RWMutex
-	SnapCh chan map[string]string
-	// LogFile *os.File
-	// OperationLog *OperationLog
+	Data         map[string]string
+	Mutex        sync.RWMutex
+	SnapCh       chan map[string]string
+	LogFile      *os.File
+	OperationLog *OperationLog
+}
+
+type OperationLog struct {
+	Operations []string
 }
 
 func NewInMemoryStore() *InMemoryStore {
 	return &InMemoryStore{
-		Data:   make(map[string]string),
-		SnapCh: make(chan map[string]string),
-		// OperationLog: &OperationLog{Operations: []string{}},
+		Data:         make(map[string]string),
+		SnapCh:       make(chan map[string]string),
+		OperationLog: &OperationLog{Operations: []string{}},
 	}
 }
 
@@ -137,6 +138,10 @@ func HandleDelete(s *InMemoryStore) http.HandlerFunc {
 		}
 
 		res := "Successfully deleted key '" + key + "'"
+
+		s.OperationLog.Operations = append(s.OperationLog.Operations, fmt.Sprintf("Delete %s", key))
+		log.Printf("Удалено значение для ключа %s", key)
+
 		_, err = w.Write([]byte(res))
 		if err != nil {
 			http.Error(w, "Failed to write response", http.StatusInternalServerError)
@@ -176,10 +181,10 @@ func (s *InMemoryStore) PersistDataToFile() error {
 		return err
 	}
 
-	// err = s.PersistLogToFile()
-	// if err != nil {
-	// 	return err
-	// }
+	err = s.PersistLogToFile()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -195,25 +200,3 @@ func PeriodicSave(s *InMemoryStore, interval time.Duration) {
 		}
 	}
 }
-
-// func (s *InMemoryStore) PersistLogToFile() error {
-// 	logFile, err := os.Open("in-memory/internal/data/log.log")
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	defer logFile.Close()
-
-// 	logData, err := json.MarshalIndent(s.OperationLog, "", "    ")
-// 	if err != nil {
-// 		log.Fatal(err)
-// 		return err
-// 	}
-
-// 	_, err = logFile.Write(logData)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 		return err
-// 	}
-
-// 	return nil
-// }
