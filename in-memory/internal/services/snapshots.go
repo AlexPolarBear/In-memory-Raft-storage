@@ -39,7 +39,6 @@ func SnapshotCreat(s *InMemoryStore, snapshotsMutex *sync.Mutex, snapshots *[]ma
 	if len(*snapshots) > 10 {
 		*snapshots = (*snapshots)[1:]
 	}
-	// snapshotsMutex.Unlock()
 
 	go func() {
 		s.SnapCh <- snapshot

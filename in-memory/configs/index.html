@@ -66,28 +66,28 @@
         <h1>In-memory Raft storage</h1>
 
         <h2>Get Value</h2>
-        <form id="getValueForm">
+        <form id="getValueForm" onsubmit="return submitForm()">
             <label for="getKey">Key:</label>
             <input type="text" id="getKey" name="key">
-            <button type="submit">Get Value</button>
+            <button onclick="submit">Get Value</button>
         </form>
         <div id="getValueResult"></div>
 
         <h2>Put Value</h2>
-        <form id="putValueForm">
+        <form id="putValueForm" onsubmit="return submitForm()">
             <label for="putKey">Key:</label>
             <input type="text" id="putKey" name="key">
             <label for="putValue">Value:</label>
             <input type="text" id="putValue" name="value">
-            <button type="submit">Put Value</button>
+            <button onclick="submit">Put Value</button>
         </form>
         <div id="putValueResult"></div>
 
         <h2>Delete Key</h2>
-        <form id="deleteKeyForm">
+        <form id="deleteKeyForm" onsubmit="return submitForm()">
             <label for="deleteKey">Key:</label>
             <input type="text" id="deleteKey" name="key">
-            <button type="submit">Delete Key</button>
+            <button onclick="submit">Delete Key</button>
         </form>
         <div id="deleteValueResult"></div>
     </div>

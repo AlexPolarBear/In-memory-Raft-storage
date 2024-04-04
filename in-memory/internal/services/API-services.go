@@ -65,7 +65,16 @@ func HandleGet(s *InMemoryStore) http.HandlerFunc {
 		}
 
 		res := "Value for key '" + key + "': '" + value + "'"
-		_, err := w.Write([]byte(res))
+		s.OperationLog.Operations = append(s.OperationLog.Operations, fmt.Sprintf("Get key '%s':'%s'", key, value))
+		log.Printf("Get key '%s':'%s'", key, value)
+
+		err := s.PersistDataToFile()
+		if err != nil {
+			http.Error(w, "Failed to persist data", http.StatusInternalServerError)
+			return
+		}
+
+		_, err = w.Write([]byte(res))
 		if err != nil {
 			http.Error(w, "Failed to write response", http.StatusInternalServerError)
 			return
@@ -104,6 +113,15 @@ func HandlePut(s *InMemoryStore) http.HandlerFunc {
 		}
 
 		res := "Successfully stored value for key '" + requestData.Key + "'"
+		s.OperationLog.Operations = append(s.OperationLog.Operations, fmt.Sprintf("Put key '%s':'%s'", requestData.Key, requestData.Value))
+		log.Printf("Put key '%s':'%s'", requestData.Key, requestData.Value)
+
+		err = s.PersistDataToFile()
+		if err != nil {
+			http.Error(w, "Failed to persist data", http.StatusInternalServerError)
+			return
+		}
+
 		_, err = w.Write([]byte(res))
 		if err != nil {
 			http.Error(w, "Failed to write response", http.StatusInternalServerError)
@@ -138,9 +156,14 @@ func HandleDelete(s *InMemoryStore) http.HandlerFunc {
 		}
 
 		res := "Successfully deleted key '" + key + "'"
+		s.OperationLog.Operations = append(s.OperationLog.Operations, fmt.Sprintf("Delete key '%s'", key))
+		log.Printf("Delete key '%s'", key)
 
-		s.OperationLog.Operations = append(s.OperationLog.Operations, fmt.Sprintf("Delete %s", key))
-		log.Printf("Удалено значение для ключа %s", key)
+		err = s.PersistDataToFile()
+		if err != nil {
+			http.Error(w, "Failed to persist data", http.StatusInternalServerError)
+			return
+		}
 
 		_, err = w.Write([]byte(res))
 		if err != nil {
