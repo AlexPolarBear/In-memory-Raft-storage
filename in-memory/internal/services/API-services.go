@@ -69,10 +69,10 @@ func HandleGet(s *InMemoryStore) http.HandlerFunc {
 		log.Printf("Get key '%s':'%s'", key, value)
 
 		err := s.PersistDataToFile()
-		if err != nil {
-			http.Error(w, "Failed to persist data", http.StatusInternalServerError)
-			return
-		}
+		// if err != nil {
+		// 	http.Error(w, "Failed to persist data", http.StatusInternalServerError)
+		// 	return
+		// }
 
 		_, err = w.Write([]byte(res))
 		if err != nil {
@@ -117,10 +117,10 @@ func HandlePut(s *InMemoryStore) http.HandlerFunc {
 		log.Printf("Put key '%s':'%s'", requestData.Key, requestData.Value)
 
 		err = s.PersistDataToFile()
-		if err != nil {
-			http.Error(w, "Failed to persist data", http.StatusInternalServerError)
-			return
-		}
+		// if err != nil {
+		// 	http.Error(w, "Failed to persist data", http.StatusInternalServerError)
+		// 	return
+		// }
 
 		_, err = w.Write([]byte(res))
 		if err != nil {
@@ -150,20 +150,20 @@ func HandleDelete(s *InMemoryStore) http.HandlerFunc {
 
 		s.Delete(key)
 		err := s.PersistDataToFile()
-		if err != nil {
-			http.Error(w, "Failed to persist data", http.StatusInternalServerError)
-			return
-		}
+		// if err != nil {
+		// 	http.Error(w, "Failed to persist data", http.StatusInternalServerError)
+		// 	return
+		// }
 
 		res := "Successfully deleted key '" + key + "'"
 		s.OperationLog.Operations = append(s.OperationLog.Operations, fmt.Sprintf("Delete key '%s'", key))
 		log.Printf("Delete key '%s'", key)
 
 		err = s.PersistDataToFile()
-		if err != nil {
-			http.Error(w, "Failed to persist data", http.StatusInternalServerError)
-			return
-		}
+		// if err != nil {
+		// 	http.Error(w, "Failed to persist data", http.StatusInternalServerError)
+		// 	return
+		// }
 
 		_, err = w.Write([]byte(res))
 		if err != nil {
@@ -179,7 +179,8 @@ func (s *InMemoryStore) PersistDataToFile() error {
 	s.Mutex.RLock()
 	defer s.Mutex.RUnlock()
 
-	file, err := os.Open("in-memory/configs/config.json")
+	// file, err := os.Open("in-memory/configs/config.json")
+	file, err := os.Open("../../configs/config.json")
 	if err != nil {
 		log.Fatal(err)
 	}
