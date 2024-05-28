@@ -6,7 +6,11 @@ require (
 	github.com/coreos/etcd v3.3.27+incompatible // indirect
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf // indirect
 	github.com/coreos/pkg v0.0.0-20240122114842-bbd7aa9bf6fb // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/google/uuid v1.4.0 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/stretchr/objx v0.5.2 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 require (
@@ -14,6 +18,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/stretchr/testify v1.9.0
 	go.etcd.io/etcd v3.3.27+incompatible
 	go.etcd.io/etcd/client/pkg/v3 v3.5.12 // indirect
 	go.uber.org/multierr v1.11.0 // indirect

@@ -3,3 +3,9 @@
 *.png
 *.json
 *.log
+some.md
+log.html
+output.xml
+report.html
+redis/
+*.robot
