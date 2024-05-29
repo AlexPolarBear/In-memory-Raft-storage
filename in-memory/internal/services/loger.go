@@ -7,7 +7,8 @@ import (
 )
 
 func (s *InMemoryStore) PersistLogToFile() error {
-	logFile, err := os.OpenFile("in-memory/internal/data/log.log", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	logFile, err := os.OpenFile("in-memory/internal/data/log.log",
+		os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		return fmt.Errorf("error opening the log file occurred: %w", err)
 	}

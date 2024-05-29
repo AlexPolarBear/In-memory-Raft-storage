@@ -10,27 +10,33 @@ import (
 	"time"
 )
 
-type PathsConfig struct {
-	DataFile string `json:"data_file"`
-}
-
 type InMemoryStore struct {
-	Data         map[string]string
-	Mutex        sync.RWMutex
-	SnapCh       chan map[string]string
-	LogFile      *os.File
-	OperationLog *OperationLog
+	Data           map[string]string
+	Mutex          sync.RWMutex
+	SnapCh         chan map[string]string
+	LogFile        *os.File
+	OperationLog   *OperationLog
+	TransactionLog *TransactionLog
 }
 
 type OperationLog struct {
 	Operations []string
 }
 
+type PathsConfig struct {
+	DataFile string `json:"data_file"`
+}
+
+type TransactionLog struct {
+	Transactions []LogEntry
+}
+
 func NewInMemoryStore() *InMemoryStore {
 	return &InMemoryStore{
-		Data:         make(map[string]string),
-		SnapCh:       make(chan map[string]string),
-		OperationLog: &OperationLog{Operations: []string{}},
+		Data:           make(map[string]string),
+		SnapCh:         make(chan map[string]string),
+		OperationLog:   &OperationLog{Operations: []string{}},
+		TransactionLog: &TransactionLog{Transactions: []LogEntry{}},
 	}
 }
 
@@ -65,14 +71,15 @@ func HandleGet(s *InMemoryStore) http.HandlerFunc {
 		}
 
 		res := "Value for key '" + key + "': '" + value + "'"
-		s.OperationLog.Operations = append(s.OperationLog.Operations, fmt.Sprintf("Get key '%s':'%s'", key, value))
+		s.OperationLog.Operations = append(s.OperationLog.Operations,
+			fmt.Sprintf("Get key '%s':'%s'", key, value))
 		log.Printf("Get key '%s':'%s'", key, value)
 
 		err := s.PersistDataToFile()
-		// if err != nil {
-		// 	http.Error(w, "Failed to persist data", http.StatusInternalServerError)
-		// 	return
-		// }
+		if err != nil {
+			http.Error(w, "Failed to persist data", http.StatusInternalServerError)
+			return
+		}
 
 		_, err = w.Write([]byte(res))
 		if err != nil {
@@ -89,6 +96,10 @@ func (s *InMemoryStore) Put(key, value string) {
 		s.Mutex.Lock()
 		defer s.Mutex.Unlock()
 		s.Data[key] = value
+		s.LogOperation("PUT", key, value)
+		if err := s.PersistLogToFile(); err != nil {
+			log.Printf("Error persisting log: %v", err)
+		}
 	}()
 }
 
@@ -106,21 +117,17 @@ func HandlePut(s *InMemoryStore) http.HandlerFunc {
 		}
 
 		s.Put(requestData.Key, requestData.Value)
+
+		res := "Successfully stored value for key '" + requestData.Key + "'"
+		s.OperationLog.Operations = append(s.OperationLog.Operations,
+			fmt.Sprintf("Put key '%s':'%s'", requestData.Key, requestData.Value))
+		log.Printf("Put key '%s':'%s'", requestData.Key, requestData.Value)
+
 		err = s.PersistDataToFile()
 		if err != nil {
 			http.Error(w, "Failed to persist data", http.StatusInternalServerError)
 			return
 		}
-
-		res := "Successfully stored value for key '" + requestData.Key + "'"
-		s.OperationLog.Operations = append(s.OperationLog.Operations, fmt.Sprintf("Put key '%s':'%s'", requestData.Key, requestData.Value))
-		log.Printf("Put key '%s':'%s'", requestData.Key, requestData.Value)
-
-		err = s.PersistDataToFile()
-		// if err != nil {
-		// 	http.Error(w, "Failed to persist data", http.StatusInternalServerError)
-		// 	return
-		// }
 
 		_, err = w.Write([]byte(res))
 		if err != nil {
@@ -137,6 +144,7 @@ func (s *InMemoryStore) Delete(key string) {
 		s.Mutex.Lock()
 		defer s.Mutex.Unlock()
 		delete(s.Data, key)
+		s.LogOperation("DELETE", key, "")
 	}()
 }
 
@@ -149,21 +157,17 @@ func HandleDelete(s *InMemoryStore) http.HandlerFunc {
 		}
 
 		s.Delete(key)
-		err := s.PersistDataToFile()
-		// if err != nil {
-		// 	http.Error(w, "Failed to persist data", http.StatusInternalServerError)
-		// 	return
-		// }
 
 		res := "Successfully deleted key '" + key + "'"
-		s.OperationLog.Operations = append(s.OperationLog.Operations, fmt.Sprintf("Delete key '%s'", key))
+		s.OperationLog.Operations = append(s.OperationLog.Operations,
+			fmt.Sprintf("Delete key '%s'", key))
 		log.Printf("Delete key '%s'", key)
 
-		err = s.PersistDataToFile()
-		// if err != nil {
-		// 	http.Error(w, "Failed to persist data", http.StatusInternalServerError)
-		// 	return
-		// }
+		err := s.PersistDataToFile()
+		if err != nil {
+			http.Error(w, "Failed to persist data", http.StatusInternalServerError)
+			return
+		}
 
 		_, err = w.Write([]byte(res))
 		if err != nil {
@@ -179,8 +183,7 @@ func (s *InMemoryStore) PersistDataToFile() error {
 	s.Mutex.RLock()
 	defer s.Mutex.RUnlock()
 
-	// file, err := os.Open("in-memory/configs/config.json")
-	file, err := os.Open("../../configs/config.json")
+	file, err := os.Open("in-memory/configs/config.json")
 	if err != nil {
 		log.Fatal(err)
 	}

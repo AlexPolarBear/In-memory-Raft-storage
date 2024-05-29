@@ -20,11 +20,11 @@ func Snapshot(s *InMemoryStore, interval time.Duration) {
 	snapshotsMutex := sync.Mutex{}
 
 	for range ticker.C {
-		SnapshotCreat(s, &snapshotsMutex, &snapshots)
+		CreatSnapshot(s, &snapshotsMutex, &snapshots)
 	}
 }
 
-func SnapshotCreat(s *InMemoryStore, snapshotsMutex *sync.Mutex, snapshots *[]map[string]string) {
+func CreatSnapshot(s *InMemoryStore, snapshotsMutex *sync.Mutex, snapshots *[]map[string]string) {
 	s.Mutex.RLock()
 	defer s.Mutex.RUnlock()
 	defer snapshotsMutex.Unlock()
