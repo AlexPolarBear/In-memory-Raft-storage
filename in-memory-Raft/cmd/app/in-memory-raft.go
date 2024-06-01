@@ -29,7 +29,6 @@ const (
 
 type raftNode struct {
 	store *services.InMemoryStore
-	raft  *raft.Raft
 }
 
 func (r *raftNode) Restore(snapshot io.ReadCloser) error {
@@ -221,53 +220,43 @@ func main() {
 	}
 	defer stableStore.Close()
 
-	// Создание хранилища памяти для снимков
 	snapshotStore := raft.NewDiscardSnapshotStore()
 
-	// Создание конечного автомата для обработки операций Raft
 	fsm := &raftNode{store: store}
 
-	// Создание конфигурации транспорта Raft
 	transport, err := raft.NewTCPTransport("localhost:7000", nil, 3, 10*time.Second, os.Stderr)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Создание экземпляра Raft и его запуск
 	raftNode, err := raft.NewRaft(raftConfig, fsm, logStore, stableStore, snapshotStore, transport)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Обработка входящих сообщений Raft
 	go func() {
 		for {
 			appliedIndex := raftNode.AppliedIndex()
 			for i := raftNode.LastIndex(); i <= appliedIndex; i++ {
-				// Получение примененной команды
 				logEntry, err := NewRaftLogStore().GetLogEntries(i, 10)
 				if err != nil {
 					log.Printf("Failed to get applied log at index %d: %s", i, err)
 					continue
 				}
 				if logEntry == nil || len(logEntry) == 0 {
-					// Ignore empty log entries
 					continue
 				}
-				// Ваша логика обработки примененной команды здесь
 				command := logEntry[len(logEntry)-1]
 				// if !ok {
 				// 	log.Printf("Failed to assert command type")
 				// 	continue
 				// }
-				// Обработка примененной команды
 				log.Printf("Applied command: %+v", command)
 			}
-			time.Sleep(100 * time.Millisecond) // Добавьте небольшую паузу перед следующей итерацией
+			time.Sleep(100 * time.Millisecond)
 		}
 	}()
 
-	// Присоединение к кластеру Raft
 	configuration := raft.Configuration{
 		Servers: []raft.Server{
 			{
