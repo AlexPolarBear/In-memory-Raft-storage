@@ -1,11 +1,11 @@
 *.csv
 *.gif
 *.png
-*.json
+in-memory/configs/config.json
 *.log
 some.md
 log.html
 output.xml
 report.html
-redis/
 *.robot
+snapshot*.json

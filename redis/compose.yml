@@ -1,0 +1,30 @@
+version: '3'
+services:
+ redis-node1:
+    image: redis:latest
+    command: redis-server --port6379 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout5000 --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data1:/data
+
+ redis-node2:
+    image: redis:latest
+    command: redis-server --port6380 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout5000 --appendonly yes
+    ports:
+      - "6380:6380"
+    volumes:
+      - redis-data2:/data
+
+ redis-node3:
+    image: redis:latest
+    command: redis-server --port6381 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout5000 --appendonly yes
+    ports:
+      - "6381:6381"
+    volumes:
+      - redis-data3:/data
+
+volumes:
+ redis-data1:
+ redis-data2:
+ redis-data3:
