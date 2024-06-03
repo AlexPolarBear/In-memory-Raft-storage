@@ -42,7 +42,7 @@ type InMemoryStore struct {
 	logger *log.Logger
 }
 
-func New() *InMemoryStore {
+func NewStore() *InMemoryStore {
 	return &InMemoryStore{
 		data:   make(map[string]string),
 		logger: log.New(os.Stderr, "[store] ", log.LstdFlags),

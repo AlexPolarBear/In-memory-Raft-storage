@@ -18,20 +18,20 @@ type StorageController struct {
 	store *services.InMemoryStore
 }
 
-func New(addr string, store *services.InMemoryStore) *StorageController {
+func NewInMemoryStore(addr string, store *services.InMemoryStore) *StorageController {
 	return &StorageController{
 		addr:  addr,
 		store: store,
 	}
 }
 
-func (sc *StorageController) Start() error {
+func (sc *StorageController) Starter() error {
 	r := mux.NewRouter()
-	r.HandleFunc("/keys/{key}", sc.HandleGetKey).Methods("GET")
-	r.HandleFunc("/keys", sc.HandlePostKey).Methods("POST")
-	r.HandleFunc("/keys/{key}", sc.HandleDeleteKey).Methods("DELETE")
+	r.HandleFunc("/keys/{key}", sc.HandleGet).Methods("GET")
+	r.HandleFunc("/keys", sc.HandlePost).Methods("POST")
+	r.HandleFunc("/keys/{key}", sc.HandleDelete).Methods("DELETE")
 	r.HandleFunc("/join", sc.HandleJoin).Methods("POST")
-	// r.PathPrefix("/").Handler(httpSwagger.WrapHandler)
+	r.Handle("/", http.FileServer(http.Dir("configs")))
 
 	server := http.Server{
 		Handler: r,
@@ -89,7 +89,7 @@ func (sc *StorageController) HandleJoin(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-func (sc *StorageController) HandleGetKey(w http.ResponseWriter, r *http.Request) {
+func (sc *StorageController) HandleGet(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["key"]
 
@@ -110,7 +110,7 @@ func (sc *StorageController) HandleGetKey(w http.ResponseWriter, r *http.Request
 	io.WriteString(w, string(b))
 }
 
-func (sc *StorageController) HandlePostKey(w http.ResponseWriter, r *http.Request) {
+func (sc *StorageController) HandlePost(w http.ResponseWriter, r *http.Request) {
 	m := map[string]string{}
 	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -124,7 +124,7 @@ func (sc *StorageController) HandlePostKey(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-func (sc *StorageController) HandleDeleteKey(w http.ResponseWriter, r *http.Request) {
+func (sc *StorageController) HandleDelete(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	k := vars["key"]
 

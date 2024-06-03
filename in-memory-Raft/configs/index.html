@@ -58,7 +58,7 @@
 
         #getValueResult {
             margin-top: 10px;
-        }
+        } 
     </style>
 </head>
 <body>
@@ -66,74 +66,104 @@
         <h1>In-memory Raft storage</h1>
 
         <h2>Get Value</h2>
-        <form id="getValueForm" onsubmit="return submitForm()">
+        <form id="getValueForm">
             <label for="getKey">Key:</label>
             <input type="text" id="getKey" name="key">
-            <button onclick="submit">Get Value</button>
+            <button type="submit">Get Value</button>
         </form>
         <div id="getValueResult"></div>
 
         <h2>Put Value</h2>
-        <form id="putValueForm" onsubmit="return submitForm()">
+        <form id="putValueForm">
             <label for="putKey">Key:</label>
             <input type="text" id="putKey" name="key">
             <label for="putValue">Value:</label>
             <input type="text" id="putValue" name="value">
-            <button onclick="submit">Put Value</button>
+            <button type="submit">Put Value</button>
         </form>
         <div id="putValueResult"></div>
 
         <h2>Delete Key</h2>
-        <form id="deleteKeyForm" onsubmit="return submitForm()">
+        <form id="deleteKeyForm">
             <label for="deleteKey">Key:</label>
             <input type="text" id="deleteKey" name="key">
-            <button onclick="submit">Delete Key</button>
+            <button type="submit">Delete Key</button>
         </form>
         <div id="deleteValueResult"></div>
     </div>
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
+            function submitForm(event) {
+                event.preventDefault();
+            }
+
             document.getElementById("getValueForm").addEventListener("submit", function (event) {
                 event.preventDefault();
                 const key = document.getElementById("getKey").value;
-                fetch(`/get?key=${key}`)
-                    .then(response => response.text())
-                    .then(data => {
-                        document.getElementById("getValueResult").innerText = data;
+                fetch(`/keys/${key}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok ' + response.statusText);
+                        }
+                        return response.json();
                     })
-                    .catch(error => console.error('Error:', error));
+                    .then(data => {
+                        document.getElementById("getValueResult").innerText = data[key];
+                    })
+                    .catch(error => {
+                        console.error('Failed to get the value by key. Error:', error);
+                        document.getElementById("getValueResult").innerText = 'Failed to get the value by key';
+                    });
             });
-    
+
             document.getElementById("putValueForm").addEventListener("submit", function (event) {
                 event.preventDefault();
                 const key = document.getElementById("putKey").value;
                 const value = document.getElementById("putValue").value;
-                fetch(`/put?key=${key}`, {
-                    method: 'PUT',
+                fetch(`/keys`, {
+                    method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ key, value }),
+                    body: JSON.stringify({ [key]: value }),
                 })
-                    .then(response => response.text())
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok ' + response.statusText);
+                        }
+                        return response.text();
+                    })
                     .then(data => {
-                        document.getElementById("putValueResult").innerText = data;
+                        document.getElementById("putValueResult").innerText = 'Value stored successfully';
                         console.log('Success:', data);
                     })
-                    .catch(error => console.error('Error:', error));
+                    .catch(error => {
+                        console.error('Failed to add data. Error:', error);
+                        document.getElementById("putValueResult").innerText = 'Failed to add data.';
+                    });
             });
-    
+
             document.getElementById("deleteKeyForm").addEventListener("submit", function (event) {
                 event.preventDefault();
                 const key = document.getElementById("deleteKey").value;
-                fetch(`/delete?key=${key}`, { method: 'DELETE' })
-                    .then(response => response.text())
+                fetch(`/keys/${key}`, {
+                    method: 'DELETE'
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok ' + response.statusText);
+                        }
+                        return response.text();
+                    })
                     .then(data => {
-                        document.getElementById("deleteValueResult").innerText = data;
+                        document.getElementById("deleteValueResult").innerText = 'Key deleted successfully';
                         console.log('Success:', data);
                     })
-                    .catch(error => console.error('Error:', error));
+                    .catch(error => {
+                        console.error('The key value could not be deleted. Error:', error);
+                        document.getElementById("deleteValueResult").innerText = 'The key value could not be deleted.';
+                    });
             });
         });
     </script>

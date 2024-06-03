@@ -53,15 +53,15 @@ func main() {
 		log.Fatalf("failed to create path for Raft storage: %s", err.Error())
 	}
 
-	store := services.New()
+	store := services.NewStore()
 	store.RaftDir = raftDir
 	store.RaftBind = raftAddr
 	if err := store.InitNode(joinAddr == "", nodeID); err != nil {
 		log.Fatalf("failed to open store: %s", err.Error())
 	}
 
-	h := api.New(httpAddr, store)
-	if err := h.Start(); err != nil {
+	h := api.NewInMemoryStore(httpAddr, store)
+	if err := h.Starter(); err != nil {
 		log.Fatalf("failed to start HTTP service: %s", err.Error())
 	}
 
