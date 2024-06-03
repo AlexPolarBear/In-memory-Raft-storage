@@ -7,7 +7,8 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"strings"
+
+	"github.com/gorilla/mux"
 )
 
 type StorageController struct {
@@ -25,8 +26,15 @@ func New(addr string, store *services.InMemoryStore) *StorageController {
 }
 
 func (sc *StorageController) Start() error {
+	r := mux.NewRouter()
+	r.HandleFunc("/keys/{key}", sc.HandleGetKey).Methods("GET")
+	r.HandleFunc("/keys", sc.HandlePostKey).Methods("POST")
+	r.HandleFunc("/keys/{key}", sc.HandleDeleteKey).Methods("DELETE")
+	r.HandleFunc("/join", sc.HandleJoin).Methods("POST")
+	// r.PathPrefix("/").Handler(httpSwagger.WrapHandler)
+
 	server := http.Server{
-		Handler: sc,
+		Handler: r,
 	}
 
 	ln, err := net.Listen("tcp", sc.addr)
@@ -35,7 +43,7 @@ func (sc *StorageController) Start() error {
 	}
 	sc.ln = ln
 
-	http.Handle("/", sc)
+	http.Handle("/", r)
 
 	go func() {
 		err := server.Serve(sc.ln)
@@ -49,20 +57,9 @@ func (sc *StorageController) Start() error {
 
 func (sc *StorageController) Close() {
 	sc.ln.Close()
-	return
 }
 
-func (sc *StorageController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if strings.HasPrefix(r.URL.Path, "/key") {
-		sc.handleKeyRequest(w, r)
-	} else if r.URL.Path == "/join" {
-		sc.handleJoin(w, r)
-	} else {
-		w.WriteHeader(http.StatusNotFound)
-	}
-}
-
-func (sc *StorageController) handleJoin(w http.ResponseWriter, r *http.Request) {
+func (sc *StorageController) HandleJoin(w http.ResponseWriter, r *http.Request) {
 	m := map[string]string{}
 	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -92,63 +89,55 @@ func (sc *StorageController) handleJoin(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-func (sc *StorageController) handleKeyRequest(w http.ResponseWriter, r *http.Request) {
-	getKey := func() string {
-		parts := strings.Split(r.URL.Path, "/")
-		if len(parts) != 3 {
-			return ""
-		}
-		return parts[2]
+func (sc *StorageController) HandleGetKey(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	key := vars["key"]
+
+	if key == "" {
+		w.WriteHeader(http.StatusBadRequest)
+	}
+	val, err := sc.store.Get(key)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
-	switch r.Method {
-	case "GET":
-		k := getKey()
-		if k == "" {
-			w.WriteHeader(http.StatusBadRequest)
-		}
-		v, err := sc.store.Get(k)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		b, err := json.Marshal(map[string]string{k: v})
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		io.WriteString(w, string(b))
-
-	case "POST":
-		m := map[string]string{}
-		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		for k, v := range m {
-			if err := sc.store.Put(k, v); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-		}
-
-	case "DELETE":
-		k := getKey()
-		if k == "" {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		if err := sc.store.Delete(k); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		sc.store.Delete(k)
-
-	default:
-		w.WriteHeader(http.StatusMethodNotAllowed)
+	b, err := json.Marshal(map[string]string{key: val})
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
-	return
+	io.WriteString(w, string(b))
+}
+
+func (sc *StorageController) HandlePostKey(w http.ResponseWriter, r *http.Request) {
+	m := map[string]string{}
+	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	for k, v := range m {
+		if err := sc.store.Put(k, v); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+func (sc *StorageController) HandleDeleteKey(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	k := vars["key"]
+
+	if k == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if err := sc.store.Delete(k); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	sc.store.Delete(k)
+
 }
 
 func (sc *StorageController) Addr() net.Addr {

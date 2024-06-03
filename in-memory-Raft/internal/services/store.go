@@ -18,6 +18,12 @@ const (
 	raftTimeout         = 10 * time.Second
 )
 
+type fsm InMemoryStore
+
+type fsmSnapshot struct {
+	store map[string]string
+}
+
 type command struct {
 	Op    string `json:"op:omitempty"`
 	Key   string `json:"key,omitempty"`
@@ -64,10 +70,7 @@ func (ims *InMemoryStore) InitNode(enableSingle bool, localID string) error {
 	logStore := raft.NewInmemStore()
 	stableStore := raft.NewInmemStore()
 
-	ra, err := raft.NewRaft(config, (*fsm)(ims), logStore, stableStore, snapshots, transport)
-	if err != nil {
-		return fmt.Errorf("error in creat node: %s", err)
-	}
+	ra, _ := raft.NewRaft(config, (*fsm)(ims), logStore, stableStore, snapshots, transport)
 	ims.raft = ra
 
 	if enableSingle {
@@ -163,8 +166,6 @@ func (ims *InMemoryStore) Join(nodeID, addr string) error {
 	return nil
 }
 
-type fsm InMemoryStore
-
 func (f *fsm) Apply(l *raft.Log) interface{} {
 	var c command
 
@@ -217,10 +218,6 @@ func (f *fsm) Restore(rc io.ReadCloser) error {
 	// Hashicorp docs.
 	f.data = o
 	return nil
-}
-
-type fsmSnapshot struct {
-	store map[string]string
 }
 
 func (f *fsmSnapshot) Persist(sink raft.SnapshotSink) error {

@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	DefaultHTTPAddr = "localhost:8080"
+	DefaultHTTPAddr = "localhost:8000"
 	DefaultRaftAddr = "localhost:7000"
 )
 
@@ -36,21 +36,19 @@ func init() {
 
 func main() {
 	flag.Parse()
-	// if flag.NArg() == 0 {
-	// 	fmt.Fprintf(os.Stderr, "No Raft storage directory specified\n")
-	// 	os.Exit(1)
-	// }
+	if flag.NArg() == 0 {
+		fmt.Fprintf(os.Stderr, "No Raft storage directory specified\n")
+		os.Exit(1)
+	}
 
 	if nodeID == "" {
 		nodeID = raftAddr
 	}
 
-	// Ensure Raft storage exists.
-	// raftDir := flag.Arg(0)
-	// if raftDir == "" {
-	// 	log.Fatalln("No Raft storage directory specified")
-	// }
-	raftDir := "internal/data/snapshots"
+	raftDir := "internal/data/snapshots/" + flag.Arg(0)
+	if raftDir == "" {
+		log.Fatalln("No Raft storage directory specified")
+	}
 	if err := os.MkdirAll(raftDir, 0700); err != nil {
 		log.Fatalf("failed to create path for Raft storage: %s", err.Error())
 	}
