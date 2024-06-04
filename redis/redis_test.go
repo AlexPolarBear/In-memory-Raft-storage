@@ -24,12 +24,12 @@ func setup() {
 	})
 
 	router = mux.NewRouter()
-	router.HandleFunc("/api/v1/data/{key}", GetDataHandler).Methods("GET")
-	router.HandleFunc("/api/v1/data/{key}", PutDataHandler).Methods("PUT")
-	router.HandleFunc("/api/v1/data/{key}", DeleteDataHandler).Methods("DELETE")
+	router.HandleFunc("/api/v1/data/{key}", GetHandler).Methods("GET")
+	router.HandleFunc("/put/{key}", PutHandler).Methods("PUT")
+	router.HandleFunc("/delet/{key}", DeleteHandler).Methods("DELETE")
 }
 
-func TestGetDataHandler(t *testing.T) {
+func TestGetHandler(t *testing.T) {
 	setup()
 
 	ts := httptest.NewServer(router)
@@ -39,7 +39,7 @@ func TestGetDataHandler(t *testing.T) {
 	value := "testValue"
 	rdb.Set(context.Background(), key, value, 0)
 
-	resp, err := http.Get(ts.URL + "/api/v1/data/" + key)
+	resp, err := http.Get(ts.URL + "/get/" + key)
 	if err != nil {
 		t.Fatalf("could not send GET request: %v", err)
 	}
@@ -68,7 +68,7 @@ func TestPutDataHandler(t *testing.T) {
 	data := map[string]string{"testKey": "newTestValue"}
 	jsonData, _ := json.Marshal(data)
 
-	req, _ := http.NewRequest("PUT", ts.URL+"/api/v1/data/testKey", bytes.NewBuffer(jsonData))
+	req, _ := http.NewRequest("PUT", ts.URL+"/put/testKey", bytes.NewBuffer(jsonData))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -99,7 +99,7 @@ func TestDeleteDataHandler(t *testing.T) {
 	value := "testValue"
 	rdb.Set(context.Background(), key, value, 0)
 
-	req, _ := http.NewRequest("DELETE", ts.URL+"/api/v1/data/"+key, nil)
+	req, _ := http.NewRequest("DELETE", ts.URL+"/delete/"+key, nil)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatalf("could not send DELETE request: %v", err)
@@ -128,7 +128,7 @@ func BenchmarkGetDataHandler(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		resp, err := http.Get(ts.URL + "/api/v1/data/" + key)
+		resp, err := http.Get(ts.URL + "/get/" + key)
 		if err != nil {
 			b.Fatalf("could not send GET request: %v", err)
 		}
@@ -147,7 +147,7 @@ func BenchmarkPutDataHandler(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		req, _ := http.NewRequest("PUT", ts.URL+"/api/v1/data/testKey", bytes.NewBuffer(jsonData))
+		req, _ := http.NewRequest("PUT", ts.URL+"/put/testKey", bytes.NewBuffer(jsonData))
 		req.Header.Set("Content-Type", "application/json")
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
@@ -169,7 +169,7 @@ func BenchmarkDeleteDataHandler(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		req, _ := http.NewRequest("DELETE", ts.URL+"/api/v1/data/"+key, nil)
+		req, _ := http.NewRequest("DELETE", ts.URL+"/delete/"+key, nil)
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			b.Fatalf("could not send DELETE request: %v", err)

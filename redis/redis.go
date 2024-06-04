@@ -21,15 +21,15 @@ func main() {
 	})
 
 	router := mux.NewRouter()
-	router.HandleFunc("/api/v1/data/{key}", GetDataHandler).Methods("GET")
-	router.HandleFunc("/api/v1/data/{key}", PutDataHandler).Methods("PUT")
-	router.HandleFunc("/api/v1/data/{key}", DeleteDataHandler).Methods("DELETE")
+	router.HandleFunc("/get/{key}", GetHandler).Methods("GET")
+	router.HandleFunc("/put/{key}", PutHandler).Methods("PUT")
+	router.HandleFunc("/delete/{key}", DeleteHandler).Methods("DELETE")
 
 	log.Println("Server started on: http://localhost:8000")
 	log.Fatal(http.ListenAndServe(":8000", router))
 }
 
-func GetDataHandler(w http.ResponseWriter, r *http.Request) {
+func GetHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["key"]
 
@@ -45,7 +45,7 @@ func GetDataHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{key: val})
 }
 
-func PutDataHandler(w http.ResponseWriter, r *http.Request) {
+func PutHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["key"]
 
@@ -65,7 +65,7 @@ func PutDataHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func DeleteDataHandler(w http.ResponseWriter, r *http.Request) {
+func DeleteHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["key"]
 
