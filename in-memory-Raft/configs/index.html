@@ -56,7 +56,18 @@
             background-color: #1a599c;;
         }
 
-        #getValueResult {
+        .transaction-buttons {
+            text-align: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #ccc;
+            margin-bottom: 20px;
+        }
+
+        .transaction-buttons button {
+            margin: 0 10px;
+        }
+
+        #getValueResult, #transactionLogResult {
             margin-top: 10px;
         } 
     </style>
@@ -90,6 +101,13 @@
             <button type="submit">Delete Key</button>
         </form>
         <div id="deleteValueResult"></div>
+
+        <h2>Transaction Log</h2>
+        <div class="transaction-buttons">
+            <button id="loadLogButton">Load Transaction Log</button>
+            <button id="saveLogButton">Save Transaction Log</button>
+        </div>
+        <div id="transactionLogResult"></div>
     </div>
 
     <script>
@@ -163,6 +181,43 @@
                     .catch(error => {
                         console.error('The key value could not be deleted. Error:', error);
                         document.getElementById("deleteValueResult").innerText = 'The key value could not be deleted.';
+                    });
+            });
+
+            document.getElementById("loadLogButton").addEventListener("click", function () {
+                fetch(`/load-transaction-log`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok ' + response.statusText);
+                        }
+                        return response.text();
+                    })
+                    .then(data => {
+                        document.getElementById("transactionLogResult").innerText = 'Transaction log loaded successfully';
+                        console.log('Success:', data);
+                    })
+                    .catch(error => {
+                        console.error('Failed to load the transaction log. Error:', error);
+                        document.getElementById("transactionLogResult").innerText = 'Failed to load the transaction log.';
+                    });
+            });
+
+
+            document.getElementById("saveLogButton").addEventListener("click", function () {
+                fetch(`/save-transaction-log`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok ' + response.statusText);
+                        }
+                        return response.text();
+                    })
+                    .then(data => {
+                        document.getElementById("transactionLogResult").innerText = 'Transaction log saved successfully';
+                        console.log('Success:', data);
+                    })
+                    .catch(error => {
+                        console.error('Failed to save the transaction log. Error:', error);
+                        document.getElementById("transactionLogResult").innerText = 'Failed to save the transaction log.';
                     });
             });
         });

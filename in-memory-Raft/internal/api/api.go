@@ -28,9 +28,11 @@ func NewInMemoryStore(addr string, store *services.InMemoryStore) *StorageContro
 func (sc *StorageController) Starter() error {
 	r := mux.NewRouter()
 	r.HandleFunc("/keys/{key}", sc.HandleGet).Methods("GET")
-	r.HandleFunc("/keys", sc.HandlePost).Methods("POST")
+	r.HandleFunc("/keys", sc.HandlePut).Methods("POST")
 	r.HandleFunc("/keys/{key}", sc.HandleDelete).Methods("DELETE")
 	r.HandleFunc("/join", sc.HandleJoin).Methods("POST")
+	r.HandleFunc("/load-transaction-log", sc.HandleLoadTransactionLog).Methods("GET")
+	r.HandleFunc("/save-transaction-log", sc.HandleSaveTransactionLog).Methods("GET")
 	r.Handle("/", http.FileServer(http.Dir("configs")))
 
 	server := http.Server{
@@ -110,7 +112,7 @@ func (sc *StorageController) HandleGet(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, string(b))
 }
 
-func (sc *StorageController) HandlePost(w http.ResponseWriter, r *http.Request) {
+func (sc *StorageController) HandlePut(w http.ResponseWriter, r *http.Request) {
 	m := map[string]string{}
 	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -136,10 +138,26 @@ func (sc *StorageController) HandleDelete(w http.ResponseWriter, r *http.Request
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	sc.store.Delete(k)
-
 }
 
 func (sc *StorageController) Addr() net.Addr {
 	return sc.ln.Addr()
+}
+
+func (sc *StorageController) HandleLoadTransactionLog(w http.ResponseWriter, r *http.Request) {
+	if err := sc.store.LoadTransactionLog(); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	io.WriteString(w, "Transaction log loaded successfully")
+}
+
+func (sc *StorageController) HandleSaveTransactionLog(w http.ResponseWriter, r *http.Request) {
+	if err := sc.store.SaveTransactionLog(); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	io.WriteString(w, "Transaction log saved successfully")
 }

@@ -1,12 +1,9 @@
 *.csv
 *.gif
 *.png
-in-memory/configs/config.json
-*.log
 some.md
-log.html
 output.xml
 report.html
 *.robot
-snapshots/
+data/
 config.json

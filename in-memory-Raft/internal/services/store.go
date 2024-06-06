@@ -39,13 +39,15 @@ type InMemoryStore struct {
 
 	raft *raft.Raft
 
-	logger *log.Logger
+	logger         *log.Logger
+	transactionLog *TransactionLog
 }
 
 func NewStore() *InMemoryStore {
 	return &InMemoryStore{
-		data:   make(map[string]string),
-		logger: log.New(os.Stderr, "[store] ", log.LstdFlags),
+		data:           make(map[string]string),
+		logger:         log.New(os.Stderr, "[store] ", log.LstdFlags),
+		transactionLog: NewTransactionLog(),
 	}
 }
 
@@ -114,6 +116,12 @@ func (ims *InMemoryStore) Put(key, value string) error {
 	}
 
 	f := ims.raft.Apply(b, raftTimeout)
+
+	ims.transactionLog.Append(LogEntry{
+		Command:   command{Op: "Put", Key: key, Value: value},
+		ApplyTime: time.Now(),
+	})
+
 	return f.Error()
 }
 
@@ -132,6 +140,12 @@ func (ims *InMemoryStore) Delete(key string) error {
 	}
 
 	f := ims.raft.Apply(b, raftTimeout)
+
+	ims.transactionLog.Append(LogEntry{
+		Command:   command{Op: "Delete", Key: key},
+		ApplyTime: time.Now(),
+	})
+
 	return f.Error()
 }
 
@@ -175,7 +189,7 @@ func (f *fsm) Apply(l *raft.Log) interface{} {
 
 	switch c.Op {
 	case "set":
-		return f.applySet(c.Key, c.Value)
+		return f.applyPut(c.Key, c.Value)
 	case "delete":
 		return f.applyDelete(c.Key)
 	default:
@@ -183,7 +197,7 @@ func (f *fsm) Apply(l *raft.Log) interface{} {
 	}
 }
 
-func (f *fsm) applySet(key, value string) interface{} {
+func (f *fsm) applyPut(key, value string) interface{} {
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
 	f.data[key] = value
@@ -242,3 +256,11 @@ func (f *fsmSnapshot) Persist(sink raft.SnapshotSink) error {
 }
 
 func (f *fsmSnapshot) Release() {}
+
+func (ims *InMemoryStore) LoadTransactionLog() error {
+	return ims.transactionLog.Load("internal/data/transaction_log.json", ims)
+}
+
+func (ims *InMemoryStore) SaveTransactionLog() error {
+	return ims.transactionLog.Save("internal/data/transaction_log.json")
+}

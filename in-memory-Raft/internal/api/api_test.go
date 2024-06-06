@@ -3,6 +3,7 @@ package api_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"testing"
 )
@@ -65,20 +66,20 @@ func TestHandleDeleteKey(t *testing.T) {
 	}
 }
 
-// func TestHandleJoin(t *testing.T) {
-// 	values := map[string]string{"addr": "localhost:8081", "id": "node1"}
-// 	jsonData, _ := json.Marshal(values)
+func TestHandleJoin(t *testing.T) {
+	values := map[string]string{"addr": "localhost:8081", "id": "node1"}
+	jsonData, _ := json.Marshal(values)
 
-// 	resp, err := http.Post("http://localhost:8080/join", "application/json", bytes.NewBuffer(jsonData))
-// 	if err != nil {
-// 		t.Fatalf("Expected no error, got %v", err)
-// 	}
-// 	defer resp.Body.Close()
+	resp, err := http.Post("http://localhost:8080/join", "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	defer resp.Body.Close()
 
-// 	if resp.StatusCode != http.StatusOK {
-// 		t.Fatalf("Expected status code %d, got %d", http.StatusOK, resp.StatusCode)
-// 	}
-// }
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("Expected status code %d, got %d", http.StatusOK, resp.StatusCode)
+	}
+}
 
 func BenchmarkHandlePostKey(b *testing.B) {
 	values := map[string]string{"testKey": "testValue"}
@@ -114,15 +115,20 @@ func BenchmarkHandleDeleteKey(b *testing.B) {
 	}
 }
 
-// func BenchmarkHandleJoin(b *testing.B) {
-// 	values := map[string]string{"addr": "localhost:7001", "id": "node1"}
-// 	jsonData, _ := json.Marshal(values)
+func BenchmarkHandleJoin(b *testing.B) {
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		port := 5000 + i
+		if port == 8080 {
+			continue
+		}
+		addr := fmt.Sprintf("localhost:%d", port)
+		values := map[string]string{"addr": addr, "id": fmt.Sprintf("node%d", i)}
+		jsonData, _ := json.Marshal(values)
 
-// 	b.ResetTimer()
-// 	for i := 0; i < b.N; i++ {
-// 		_, err := http.Post("http://localhost:8080/join", "application/json", bytes.NewBuffer(jsonData))
-// 		if err != nil {
-// 			b.Fatalf("Error joining node: %v", err)
-// 		}
-// 	}
-// }
+		_, err := http.Post("http://localhost:8080/join", "application/json", bytes.NewBuffer(jsonData))
+		if err != nil {
+			b.Fatalf("Error joining node: %v", err)
+		}
+	}
+}
