@@ -1,3 +1,5 @@
 go 1.21.6
 
 use ./in-memory-Raft
+use ./in-memory
+use ./etcd

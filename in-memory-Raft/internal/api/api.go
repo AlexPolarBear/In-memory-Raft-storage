@@ -119,6 +119,10 @@ func (sc *StorageController) HandlePut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for k, v := range m {
+		if k == "" || v == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 		if err := sc.store.Put(k, v); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return

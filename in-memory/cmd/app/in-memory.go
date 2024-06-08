@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"inmemory/internal/api"
 	"inmemory/internal/services"
 )
 
@@ -63,9 +64,9 @@ func main() {
 	go services.PeriodicSave(store, interval)
 	go services.Snapshot(store, interval)
 
-	http.HandleFunc("/get", services.HandleGet(store))
-	http.HandleFunc("/put", services.HandlePut(store))
-	http.HandleFunc("/delete", services.HandleDelete(store))
+	http.HandleFunc("/get", api.HandleGet(store))
+	http.HandleFunc("/put", api.HandlePut(store))
+	http.HandleFunc("/delete", api.HandleDelete(store))
 
 	http.HandleFunc("/rollback", services.HandlerRollback(store))
 

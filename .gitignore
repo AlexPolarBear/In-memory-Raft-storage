@@ -1,9 +1,10 @@
 *.csv
 *.gif
 *.png
-some.md
 output.xml
 report.html
-*.robot
 data/
 config.json
+700*/
+redisinsight/
+README.md

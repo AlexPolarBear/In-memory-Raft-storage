@@ -1,30 +1,86 @@
 version: '3'
+
+networks:
+  redis-cluster-compose:
+    driver: bridge
+
 services:
- redis-node1:
+  redis-node-1:
     image: redis:latest
-    command: redis-server --port6379 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout5000 --appendonly yes
     ports:
-      - "6379:6379"
+      - 7001:7001
+    networks:
+      - redis-cluster-compose
+    hostname: redis-node-1
     volumes:
-      - redis-data1:/data
+      - ./7001:/redis
+    command: redis-server /redis/redis.conf
 
- redis-node2:
+  redis-node-2:
     image: redis:latest
-    command: redis-server --port6380 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout5000 --appendonly yes
     ports:
-      - "6380:6380"
+      - 7002:7002
+    networks:
+      - redis-cluster-compose
+    hostname: redis-node-2
     volumes:
-      - redis-data2:/data
+      - ./7002:/redis
+    command: redis-server /redis/redis.conf
 
- redis-node3:
+  redis-node-3:
     image: redis:latest
-    command: redis-server --port6381 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout5000 --appendonly yes
     ports:
-      - "6381:6381"
+      - 7003:7003
+    networks:
+      - redis-cluster-compose
+    hostname: redis-node-3
     volumes:
-      - redis-data3:/data
+      - ./7003:/redis
+    command: redis-server /redis/redis.conf
 
-volumes:
- redis-data1:
- redis-data2:
- redis-data3:
+  redis-node-4:
+    image: redis:latest
+    ports:
+      - 7004:7004
+    networks:
+      - redis-cluster-compose
+    hostname: redis-node-4
+    volumes:
+      - ./7004:/redis
+    command: redis-server /redis/redis.conf
+  
+  redis-node-5:
+    image: redis:latest
+    ports:
+      - 7005:7005
+    networks:
+      - redis-cluster-compose
+    hostname: redis-node-5
+    volumes:
+      - ./7005:/redis
+    command: redis-server /redis/redis.conf
+  
+  redis-cluster-creator:
+    image: redis:latest
+    ports:
+      - 6999:6999
+    networks:
+      - redis-cluster-compose
+    command: redis-cli -p 7000 --cluster create redis-node-1:7000 redis-node-2:7001 redis-node-3:7002 redis-node-4:7003 redis-node-5:7004 redis-node-6:7005 --cluster-replicas 1 --cluster-yes
+    depends_on:
+      - redis-node-1
+      - redis-node-2
+      - redis-node-3
+      - redis-node-4
+      - redis-node-5
+  
+  redis-insight:
+    image: redislabs/redisinsight
+    ports:
+      - 8001:8001
+    networks:
+      - redis-cluster-compose
+    volumes:
+      - ./redisinsight:/db
+    depends_on:
+      - redis-cluster-creator

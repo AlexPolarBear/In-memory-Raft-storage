@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"inmemory/internal/api"
 	"inmemory/internal/services"
 )
 
@@ -20,10 +21,8 @@ func TestInMemoryStore(t *testing.T) {
 
 		time.Sleep(100 * time.Millisecond)
 
-		result := make(chan string)
-		go store.Get("test_key", result)
-		value := <-result
-		if value != "test_value" {
+		value, ok := store.Get("test_key")
+		if !ok || value != "test_value" {
 			t.Errorf("Expected value 'test_value' for key 'test_key', got '%s'", value)
 		}
 	})
@@ -33,21 +32,15 @@ func TestInMemoryStore(t *testing.T) {
 
 		time.Sleep(100 * time.Millisecond)
 
-		result := make(chan string)
-		go store.Get("test_key", result)
-		value := <-result
-
-		if value != "test_value" {
+		value, ok := store.Get("test_key")
+		if !ok || value != "test_value" {
 			t.Errorf("Expected value 'test_value' for key 'test_key', got '%s'", value)
 		}
 
 		time.Sleep(100 * time.Millisecond)
 
-		result = make(chan string)
-		go store.Get("nonexistent_key", result)
-		value = <-result
-
-		if value != "" {
+		_, ok = store.Get("nonexistent_key")
+		if ok {
 			t.Errorf("Expected key 'nonexistent_key' to be not found")
 		}
 	})
@@ -66,11 +59,8 @@ func TestInMemoryStore(t *testing.T) {
 		wg.Wait()
 
 		time.Sleep(100 * time.Millisecond)
-		result := make(chan string)
-		go store.Get("test_key", result)
-		value := <-result
-
-		if value != "" {
+		_, ok := store.Get("test_key")
+		if ok {
 			t.Errorf("Expected key 'test_key' to be deleted")
 		}
 	})
@@ -99,9 +89,7 @@ func BenchmarkGet(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		key := fmt.Sprintf("key%d", i)
-		result := make(chan string)
-		go store.Get(key, result)
-		<-result
+		store.Get(key)
 	}
 }
 
@@ -124,7 +112,7 @@ func BenchmarkDelete(b *testing.B) {
 
 func BenchmarkHTTPPut(b *testing.B) {
 	store := services.NewInMemoryStore()
-	server := httptest.NewServer(http.HandlerFunc(services.HandlePut(store)))
+	server := httptest.NewServer(http.HandlerFunc(api.HandlePut(store)))
 	defer server.Close()
 
 	b.ResetTimer()
@@ -140,7 +128,7 @@ func BenchmarkHTTPPut(b *testing.B) {
 
 func BenchmarkHTTPGet(b *testing.B) {
 	store := services.NewInMemoryStore()
-	server := httptest.NewServer(http.HandlerFunc(services.HandleGet(store)))
+	server := httptest.NewServer(http.HandlerFunc(api.HandleGet(store)))
 	defer server.Close()
 
 	b.ResetTimer()
@@ -154,7 +142,7 @@ func BenchmarkHTTPGet(b *testing.B) {
 
 func BenchmarkHTTPDelete(b *testing.B) {
 	store := services.NewInMemoryStore()
-	server := httptest.NewServer(http.HandlerFunc(services.HandleDelete(store)))
+	server := httptest.NewServer(http.HandlerFunc(api.HandleDelete(store)))
 	defer server.Close()
 
 	for i := 0; i < b.N; i++ {
