@@ -9,7 +9,7 @@ Suite Setup       Запустить Сервер
 Suite Teardown    Остановить Сервер
 
 Test Setup        Инициализировать Данные
-Test Teardown     Очистить Данные
+Test Teardown     DELETE On Session    raft    /keys/testKey
 
 
 *** Variables ***
@@ -17,6 +17,7 @@ ${SERVER}             http://localhost:8080
 ${RAFT_DIR}           ./raft_data
 ${RAFT_EXECUTABLE}    go run ./cmd/app/in-memory-raft.go
 ${RAFT_DATA_PATH}     ${RAFT_DIR}/test_node
+${PROCESS_ID}         0
 
 
 *** Test Cases ***
@@ -51,16 +52,13 @@ Delete Запрос Несуществующего Ключа
 Запустить Сервер
     Create Directory    ${RAFT_DIR}
     ${process_id}=    Start Process    ${RAFT_EXECUTABLE}    -haddr localhost:8080    -raddr localhost:7000    -id "test_node"    ${RAFT_DATA_PATH}    shell=True
-    Set Suite Variable    ${process_id}
+    Set Suite Variable    ${PROCESS_ID}
 
 Остановить Сервер
-    ${process_alive}=    Is Process Running    ${process_id}
-    Run Keyword If    ${process_alive}    Terminate Process    ${process_id}    kill=True
+    ${process_alive}=    Is Process Running    ${PROCESS_ID}
+    Run Keyword If    ${process_alive}    Terminate Process    ${PROCESS_ID}    kill=True
 
 Инициализировать Данные
     Create Session    raft    ${SERVER}
     &{data}=    Create Dictionary    key=testKey    value=testValue
     POST On Session    raft    /keys    json=${data}
-
-Очистить Данные
-    DELETE On Session    raft    /keys/testKey

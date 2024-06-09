@@ -1,0 +1,5 @@
+{
+    "data_file": "in-memory/internal/data/data.json",
+    "index_file": "in-memory/configs",
+    "log_file": "in-memory/internal/data/log.log"
+}

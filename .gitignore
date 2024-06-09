@@ -1,10 +1,9 @@
 *.csv
 *.gif
-*.png
+results/
 output.xml
 report.html
 data/
-config.json
 700*/
 redisinsight/
 README.md

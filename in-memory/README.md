@@ -1,3 +1,3 @@
-# In-memory key-value storage
+# In-memory storage
 
-
+Реализация простого in-memory key-value хранилища, с поддержкой инструментов персистентности данных. В этой реализации отсутсвует протокол Raft.
